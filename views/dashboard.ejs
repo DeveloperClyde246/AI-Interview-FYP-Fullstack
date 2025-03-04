@@ -1,0 +1,20 @@
+<h2>Welcome, <%= user.name %>!</h2>
+
+<p>You are now logged in. Here are your interviews:</p>
+
+<% /* %>
+<ul>
+  <% if (interviews.length === 0) { %>
+    <li>No interviews yet. Try creating one.</li>
+  <% } else { %>
+    <% interviews.forEach(interview => { %>
+      <li>
+        <strong><%= interview.candidateName %></strong>: <%= interview.score %> points
+      </li>
+    <% }) %>
+  <% } %>
+</ul>
+
+<%*/ %>
+
+<a href="/auth/logout">Logout</a>

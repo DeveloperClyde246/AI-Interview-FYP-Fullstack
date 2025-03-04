@@ -1,0 +1,14 @@
+
+<h2>Register</h2>
+
+<% if (errorMessage) { %>
+  <p style="color: red;"><%= errorMessage %></p>
+<% } %>
+
+<form action="/auth/register" method="POST">
+  <input type="text" name="name" placeholder="Name" required>
+  <input type="email" name="email" placeholder="Email" required>
+  <input type="password" name="password" placeholder="Password" required>
+  <button type="submit">Register</button>
+</form>
+<p>Already have an account? <a href="/auth/login">Login</a></p>
