@@ -3,10 +3,7 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const expressLayouts = require("express-ejs-layouts");
-
-// Middleware imports
 const cookieParser = require("cookie-parser");
-const authMiddleware = require("./middleware/authMiddleware");
 
 dotenv.config();
 
@@ -29,7 +26,13 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopol
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.error("❌ MongoDB Connection Error:", err));
 
-// Ensure routes are properly required and used
+//-------------All above is just initial setup, import libraries, wont change much, not so important-------------------
+
+
+// Middleware imports (only used for auth)
+const authMiddleware = require("./middleware/authMiddleware");
+
+// import routes
 const authRoutes = require("./routes/auth");
 //const interviewRoutes = require("./routes/interview");
 //const notificationRoutes = require("./routes/notification");
@@ -42,8 +45,10 @@ app.use("/auth", authRoutes);
 //app.use("/notifications", notificationRoutes);
 //app.use("/recruiter", recruiterRoutes);
 
-// Render home page
+
+// Render home page index.js
 app.get("/", (req, res) => res.render("index", { title: "AI Interview Portal" }));
+
 
 // Protected dashboards
 app.get("/dashboard", authMiddleware(["candidate", "interviewee"]), (req, res) => {
@@ -57,6 +62,7 @@ app.get("/admin-dashboard", authMiddleware(["admin"]), (req, res) => {
 app.get("/recruiter-dashboard", authMiddleware(["recruiter"]), (req, res) => {
   res.render("recruiter-dashboard", { title: "Recruiter Dashboard", username: req.cookies.username });
 });
+
 
 // Start server
 const PORT = process.env.PORT || 5000;
