@@ -1,3 +1,5 @@
+//Version: Login and Registration completed, backup for 3 role login modification
+
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
