@@ -1,6 +1,8 @@
 <h2>Welcome, <%= username %>!</h2>
 <p>Your role: <strong><%= role %></strong></p>
 
+<% /* %>
+
 <% if (role === "admin") { %>
   <a href="/manage-users">Manage Users</a>
 <% } else if (role === "candidate") { %>
@@ -13,5 +15,7 @@
 <% } else { %>
   <a>No roles assigned</a>
 <% } %>
+
+<% */ %>
 
 <a href="/auth/logout">Logout</a>

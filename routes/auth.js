@@ -65,6 +65,8 @@ router.post("/login", async (req, res) => {
       { expiresIn: "1h" }
     );
 
+
+
     // 4. Store JWT and role in cookies
     res.cookie("token", token, { httpOnly: true });
     res.cookie("username", user.name, { httpOnly: true });
