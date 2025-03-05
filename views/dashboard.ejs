@@ -1,20 +1,17 @@
-<h2>Welcome, <%= user.name %>!</h2>
+<h2>Welcome, <%= username %>!</h2>
+<p>Your role: <strong><%= role %></strong></p>
 
-<p>You are now logged in. Here are your interviews:</p>
-
-<% /* %>
-<ul>
-  <% if (interviews.length === 0) { %>
-    <li>No interviews yet. Try creating one.</li>
-  <% } else { %>
-    <% interviews.forEach(interview => { %>
-      <li>
-        <strong><%= interview.candidateName %></strong>: <%= interview.score %> points
-      </li>
-    <% }) %>
-  <% } %>
-</ul>
-
-<%*/ %>
+<% if (role === "admin") { %>
+  <a href="/manage-users">Manage Users</a>
+<% } else if (role === "candidate") { %>
+  <a href="/interviews">Start Interview</a>
+<% } else if (role === "interviewee") { %>
+  <a href="/results">View Results</a>
+<% } else if (role === "recruiter") { %>
+  <a href="/schedule-interviews">Schedule Interviews</a>
+  <a href="/view-candidates">View Candidates</a>
+<% } else { %>
+  <a>No roles assigned</a>
+<% } %>
 
 <a href="/auth/logout">Logout</a>
