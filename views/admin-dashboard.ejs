@@ -11,6 +11,21 @@
       event.preventDefault(); // Stop form submission
     }
   }
+
+  // function togglePassword(userId) {
+  //   const passwordField = document.getElementById("password-" + userId);
+  //   if (passwordField.value === "********") {
+  //     fetch("/admin-dashboard/get-password/" + userId)
+  //       .then(response => response.json())
+  //       .then(data => {
+  //         if (data.password) {
+  //           passwordField.value = data.password;
+  //         }
+  //       });
+  //   } else {
+  //     passwordField.value = "********";
+  //   }
+  // }
 </script>
 
 <h2>Admin Dashboard</h2>
@@ -45,6 +60,10 @@
       <td><%= user.name %></td>
       <td><%= user.email %></td>
       <td><%= user.role %></td>
+      <!-- <td>
+        <button onclick="togglePassword('<%= user._id %>')">Show Password</button>
+        <input type="text" id="password-<%= user._id %>" value="********" readonly>
+      </td> -->
       <td>
         <form action="/admin-dashboard/edit/<%= user._id %>" method="POST">
           <input type="text" name="name" value="<%= user.name %>" required>
@@ -56,6 +75,13 @@
           </select>
           <button type="submit">Edit</button>
         </form>
+        
+        <!-- Change Password Form -->
+        <form action="/admin-dashboard/change-password/<%= user._id %>" method="POST">
+          <input type="password" name="newPassword" placeholder="New Password" required>
+          <button type="submit">Change Password</button>
+        </form>
+
         <form action="/admin-dashboard/delete/<%= user._id %>" method="POST">
           <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
         </form>

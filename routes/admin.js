@@ -18,6 +18,34 @@ router.get("/", async (req, res) => {
   }
 });
 
+// // Get decrypted password (for viewing)
+// router.get("/get-password/:id", async (req, res) => {
+//   try {
+//     const user = await User.findById(req.params.id);
+//     if (!user) return res.status(404).json({ message: "User not found" });
+
+//     res.json({ password: user.password }); // Sending hashed password (for security, don't send plaintext!)
+//   } catch (error) {
+//     res.status(500).json({ message: "Error fetching password" });
+//   }
+// });
+
+// Change user password
+router.post("/change-password/:id", async (req, res) => {
+  const { newPassword } = req.body;
+
+  try {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await User.findByIdAndUpdate(req.params.id, { password: hashedPassword });
+
+    res.redirect("/admin-dashboard");
+  } catch (error) {
+    res.status(500).json({ message: "Error updating password" });
+  }
+});
+
+
+
 // Create a new user
 router.post("/create", async (req, res) => {
   const { name, email, password, role } = req.body;
