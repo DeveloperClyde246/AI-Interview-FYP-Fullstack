@@ -1,0 +1,67 @@
+<script>
+  function validateEmailFormat(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  function validateForm(event) {
+    const email = document.getElementById("email").value;
+    if (!validateEmailFormat(email)) {
+      alert("Invalid email format! Please enter a valid email.");
+      event.preventDefault(); // Stop form submission
+    }
+  }
+</script>
+
+<h2>Admin Dashboard</h2>
+<p>Manage all users (Candidates & Recruiters)</p>
+
+<!-- Create New User Form -->
+<h3>Create New User</h3>
+<form action="/admin-dashboard/create" method="POST" onsubmit="validateForm(event)">
+  <input type="text" name="name" placeholder="Name" required>
+  <input type="email" id="email" name="email" placeholder="Email" required>
+  <input type="password" name="password" placeholder="Password" required>
+  <select name="role">
+    <option value="candidate">Candidate</option>
+    <option value="recruiter">Recruiter</option>
+    <option value="admin">Admin</option>
+  </select>
+  <button type="submit">Create User</button>
+</form>
+
+
+<!-- User List -->
+<h3>All Users</h3>
+<table border="1">
+  <tr>
+    <th>Name</th>
+    <th>Email</th>
+    <th>Role</th>
+    <th>Actions</th>
+  </tr>
+  <% users.forEach(user => { %>
+    <tr>
+      <td><%= user.name %></td>
+      <td><%= user.email %></td>
+      <td><%= user.role %></td>
+      <td>
+        <form action="/admin-dashboard/edit/<%= user._id %>" method="POST">
+          <input type="text" name="name" value="<%= user.name %>" required>
+          <input type="email" name="email" value="<%= user.email %>" required>
+          <select name="role">
+            <option value="candidate" <%= user.role === "candidate" ? "selected" : "" %>>Candidate</option>
+            <option value="recruiter" <%= user.role === "recruiter" ? "selected" : "" %>>Recruiter</option>
+            <option value="admin" <%= user.role === "admin" ? "selected" : "" %>>Admin</option>
+          </select>
+          <button type="submit">Edit</button>
+        </form>
+        <form action="/admin-dashboard/delete/<%= user._id %>" method="POST">
+          <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
+        </form>
+      </td>
+    </tr>
+  <% }); %>
+</table>
+
+<a href="/auth/logout">Logout</a>

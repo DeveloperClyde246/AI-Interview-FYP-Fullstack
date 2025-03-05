@@ -16,6 +16,12 @@ router.post("/register", async (req, res) => {
   const role = "candidate"; // Default role for new registrations
 
   try {
+    // Check if email format is valid
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: "Invalid email format" });
+    }
+
     // 1. Check if the email is already registered
     let user = await User.findOne({ email });
     if (user) {
