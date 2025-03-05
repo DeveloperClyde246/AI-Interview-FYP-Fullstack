@@ -26,7 +26,7 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopol
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.error("❌ MongoDB Connection Error:", err));
 
-//-------------All above is just initial setup, import libraries, wont change much, not so important-------------------
+//--------------All above is just initial setup, import libraries, wont change much, not so important--------------------------------------------------------------------
 
 
 // Middleware imports (only used for auth)
@@ -34,6 +34,7 @@ const authMiddleware = require("./middleware/authMiddleware");
 
 // import routes
 const authRoutes = require("./routes/auth");
+const adminRoutes = require("./routes/admin");
 //const interviewRoutes = require("./routes/interview");
 //const notificationRoutes = require("./routes/notification");
 //const recruiterRoutes = require("./routes/recruiter");
@@ -41,6 +42,7 @@ const authRoutes = require("./routes/auth");
 
 // Use the routes
 app.use("/auth", authRoutes);
+app.use("/admin-dashboard", adminRoutes);
 //app.use("/interviews", interviewRoutes);
 //app.use("/notifications", notificationRoutes);
 //app.use("/recruiter", recruiterRoutes);
