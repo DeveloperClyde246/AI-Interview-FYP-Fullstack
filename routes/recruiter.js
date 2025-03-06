@@ -163,4 +163,21 @@ router.post("/interview/:id/unassign-candidate", async (req, res) => {
 });
   
 
+router.post("/interview/:id/edit", async (req, res) => {
+    try {
+      const { title, description, scheduled_date } = req.body;
+  
+      await Interview.findByIdAndUpdate(req.params.id, {
+        title,
+        description,
+        scheduled_date: new Date(scheduled_date)
+      });
+  
+      res.redirect(`/recruiter/interview/${req.params.id}`);
+    } catch (error) {
+      console.error("❌ Error updating interview:", error.message);
+      res.status(500).json({ message: "Error updating interview" });
+    }
+});
+
 module.exports = router;

@@ -17,23 +17,46 @@
       </li>
     <% }) %>
   <% } else { %>
-    <p>No candidates assigned.</p>
-  <% } %>
+    <p>No candidate assigned.</p>
+    <% } %>
 </ul>
 
 <h3>Add More Candidates</h3>
-<form action="/recruiter/interview/<%= interview._id %>/add-candidates" method="POST">
-  <ul>
-    <% allCandidates.forEach(candidate => { %>
-      <% if (!interview.candidates.some(c => c._id.toString() === candidate._id.toString())) { %>
+<% 
+  const unassignedCandidates = allCandidates.filter(candidate => 
+    !interview.candidates.some(c => c._id.toString() === candidate._id.toString())
+  );
+%>
+
+<% if (unassignedCandidates.length === 0) { %>
+  <p>All users are already assigned to this interview.</p>
+<% } else { %>
+  <form action="/recruiter/interview/<%= interview._id %>/add-candidates" method="POST">
+    <ul>
+      <% unassignedCandidates.forEach(candidate => { %>
         <li>
           <input type="checkbox" name="candidateIds[]" value="<%= candidate._id %>">
           <%= candidate.name %> (<%= candidate.email %>)
         </li>
-      <% } %>
-    <% }) %>
-  </ul>
-  <button type="submit">Add Selected Candidates</button>
+      <% }) %>
+    </ul>
+    <button type="submit">Add Selected Candidates</button>
+  </form>
+<% } %>
+
+<h2>Edit Interview</h2>
+
+<form action="/recruiter/interview/<%= interview._id %>/edit" method="POST">
+  <label>Interview Title:</label>
+  <input type="text" name="title" value="<%= interview.title %>" required><br>
+
+  <label>Interview Description:</label>
+  <textarea name="description" required><%= interview.description %></textarea><br>
+
+  <label>Scheduled Date:</label>
+  <input type="datetime-local" name="scheduled_date" value="<%= new Date(interview.scheduled_date).toISOString().slice(0,16) %>" required><br>
+
+  <button type="submit">Save Changes</button>
 </form>
 
 <a href="/recruiter/interviews">Back to Interview List</a>
