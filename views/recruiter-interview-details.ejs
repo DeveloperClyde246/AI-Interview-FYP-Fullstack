@@ -4,14 +4,20 @@
 <p><strong>Description:</strong> <%= interview.description %></p>
 <p><strong>Scheduled Date:</strong> <%= new Date(interview.scheduled_date).toLocaleString() %></p>
 
-<h3>Candidates</h3>
+<h3>Assigned Candidates</h3>
 <ul>
   <% if (interview.candidates.length > 0) { %>
     <% interview.candidates.forEach(candidate => { %>
-      <li><%= candidate.name %> (<%= candidate.email %>)</li>
+      <li>
+        <%= candidate.name %> (<%= candidate.email %>)
+        <form action="/recruiter/interview/<%= interview._id %>/unassign-candidate" method="POST" style="display:inline;">
+          <input type="hidden" name="candidateId" value="<%= candidate._id %>">
+          <button type="submit" onclick="return confirm('Unassign this candidate?')">Unassign</button>
+        </form>
+      </li>
     <% }) %>
   <% } else { %>
-    <p>No candidates assigned yet.</p>
+    <p>No candidates assigned.</p>
   <% } %>
 </ul>
 
@@ -20,12 +26,10 @@
   <ul>
     <% allCandidates.forEach(candidate => { %>
       <% if (!interview.candidates.some(c => c._id.toString() === candidate._id.toString())) { %>
-        
         <li>
           <input type="checkbox" name="candidateIds[]" value="<%= candidate._id %>">
           <%= candidate.name %> (<%= candidate.email %>)
         </li>
-
       <% } %>
     <% }) %>
   </ul>
