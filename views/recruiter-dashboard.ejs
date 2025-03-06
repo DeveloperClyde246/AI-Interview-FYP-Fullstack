@@ -17,21 +17,45 @@
 <h3>Your Scheduled Interviews</h3>
 <table border="1">
   <tr>
+    <th>Title</th>
     <th>Candidate</th>
     <th>Scheduled Date</th>
     <th>Status</th>
   </tr>
   <% if (interviews.length === 0) { %>
-    <tr><td colspan="3">No scheduled interviews</td></tr>
+    <tr><td colspan="4">No scheduled interviews</td></tr>
   <% } else { %>
     <% interviews.forEach(interview => { %>
       <tr>
-        <td><%= interview.candidateId.name %> (<%= interview.candidateId.email %>)</td>
-        <td><%= new Date(interview.scheduled_date).toLocaleString() %></td>
-        <td><%= interview.status %></td>
+        <!-- Display Interview Title -->
+        <td><%= interview.title %></td>
+        
+        <!-- Display Candidates -->
+        <td>
+          <% if (interview.candidates.length > 0) { %>
+            <% interview.candidates.forEach(candidate => { %>
+              <%= candidate.name %> (<%= candidate.email %>)<br>
+            <% }); %>
+          <% } else { %>
+            No candidates assigned
+          <% } %>
+        </td>
+        
+        <!-- Display Scheduled Date -->
+        <td>
+          <% if (interview.scheduled_date) { %>
+            <%= new Date(interview.scheduled_date).toLocaleString() %>
+          <% } else { %>
+            Not Scheduled
+          <% } %>
+        </td>
+
+        <!-- Display Interview Status -->
+        <td><%= interview.status || "Pending" %></td>
       </tr>
     <% }) %>
   <% } %>
 </table>
+
 
 <a href="/auth/logout">Logout</a>
