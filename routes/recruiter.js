@@ -3,7 +3,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 const Notification = require("../models/Notification");
 const Interview = require("../models/Interview");
 const User = require("../models/User");
-const multer = require("multer");
+//const multer = require("multer");
 const mongoose = require("mongoose");
 
 const router = express.Router();
@@ -89,6 +89,63 @@ router.post("/create-interview", async (req, res) => {
     }
   });
   
+// ✅ View All Interviews Managed by the Recruiter
+router.get("/interviews", async (req, res) => {
+    try {
+      const recruiterId = new mongoose.Types.ObjectId(req.user.id);
+      const interviews = await Interview.find({ recruiterId })
+        .populate("candidates", "name email")
+        .sort({ scheduled_date: -1 });
+  
+      res.render("recruiter-interviews", { title: "My Interviews", interviews });
+    } catch (error) {
+      console.error("❌ Error loading interviews:", error.message);
+      res.status(500).json({ message: "Error loading interviews" });
+    }
+  });
+  
+// ✅ View Interview Details
+router.get("/interview/:id", async (req, res) => {
+try {
+    const interview = await Interview.findById(req.params.id).populate("candidates", "name email");
+    if (!interview) return res.status(404).send("Interview not found");
 
+    const allCandidates = await User.find({ role: "candidate" });
+    res.render("recruiter-interview-details", { title: "Interview Details", interview, allCandidates });
+} catch (error) {
+    console.error("❌ Error fetching interview details:", error.message);
+    res.status(500).json({ message: "Error fetching interview details" });
+}
+});
+
+// ✅ Add More Candidates to an Interview
+router.post("/interview/:id/add-candidates", async (req, res) => {
+  try {
+    const { candidateIds } = req.body;
+    if (!candidateIds || candidateIds.length === 0) {
+      return res.redirect(`/recruiter/interview/${req.params.id}`);
+    }
+
+    await Interview.findByIdAndUpdate(req.params.id, {
+      $addToSet: { candidates: { $each: candidateIds.map(id => new mongoose.Types.ObjectId(id)) } }
+    });
+
+    res.redirect(`/recruiter/interview/${req.params.id}`);
+  } catch (error) {
+    console.error("❌ Error adding candidates:", error.message);
+    res.status(500).json({ message: "Error adding candidates" });
+  }
+});
+
+// ✅ Delete an Interview
+router.post("/interview/:id/delete", async (req, res) => {
+try {
+    await Interview.findByIdAndDelete(req.params.id);
+    res.redirect("/recruiter/interviews");
+} catch (error) {
+    console.error("❌ Error deleting interview:", error.message);
+    res.status(500).json({ message: "Error deleting interview" });
+}
+});
 
 module.exports = router;

@@ -44,7 +44,6 @@ const recruiterRoutes = require("./routes/recruiter");
 // Use the routes
 app.use("/auth", authRoutes);
 app.use("/admin-dashboard", adminRoutes);
-app.use("/recruiter-dashboard", recruiterRoutes);
 app.use("/recruiter", recruiterRoutes);
 //app.use("/interviews", interviewRoutes);
 //app.use("/notifications", notificationRoutes);
