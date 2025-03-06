@@ -1,0 +1,25 @@
+<h2>My Interviews</h2>
+
+<table border="1">
+  <tr>
+    <th>Title</th>
+    <th>Scheduled Date</th>
+    <th>Actions</th>
+  </tr>
+  <% if (interviews.length === 0) { %>
+    <tr><td colspan="3">No scheduled interviews</td></tr>
+  <% } else { %>
+    <% interviews.forEach(interview => { %>
+      <tr>
+        <td><%= interview.title %></td>
+        <td><%= new Date(interview.scheduled_date).toLocaleString() %></td>
+        <td>
+          <a href="/recruiter/interview/<%= interview._id %>">View Details</a>
+          <form action="/recruiter/interview/<%= interview._id %>/delete" method="POST" style="display:inline;">
+            <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
+          </form>
+        </td>
+      </tr>
+    <% }) %>
+  <% } %>
+</table>
