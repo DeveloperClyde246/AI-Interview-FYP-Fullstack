@@ -1,0 +1,52 @@
+<h2>Create New Interview</h2>
+
+<form action="/recruiter/create-interview" method="POST">
+  <label>Interview Title:</label>
+  <input type="text" name="title" required><br>
+
+  <label>Interview Description:</label>
+  <textarea name="description" required></textarea><br>
+
+  <label>Scheduled Date:</label>
+  <input type="datetime-local" name="scheduled_date" required><br>
+
+  <h3>Assign Candidates</h3>
+  <ul>
+    <% users.forEach(user => { %>
+      <li>
+        <input type="checkbox" name="candidateIds[]" value="<%= user._id %>">
+        <%= user.name %> (<%= user.email %>)
+      </li>
+    <% }); %>
+  </ul>
+
+  <h3>Interview Questions</h3>
+  <div id="questions-container">
+    <div class="question">
+      <input type="text" name="questions[]" placeholder="Enter question" required>
+      <select name="answerTypes[]">
+        <option value="text">Text-Based Answer</option>
+        <option value="video">Video Upload</option>
+      </select>
+    </div>
+  </div>
+
+  <button type="button" onclick="addQuestion()">Add Another Question</button>
+  <button type="submit">Create Interview</button>
+</form>
+
+<script>
+  function addQuestion() {
+    const container = document.getElementById("questions-container");
+    const div = document.createElement("div");
+    div.classList.add("question");
+    div.innerHTML = `
+      <input type="text" name="questions[]" placeholder="Enter question" required>
+      <select name="answerTypes[]">
+        <option value="text">Text-Based Answer</option>
+        <option value="video">Video Upload</option>
+      </select>
+    `;
+    container.appendChild(div);
+  }
+</script>
