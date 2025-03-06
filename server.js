@@ -35,6 +35,7 @@ const authMiddleware = require("./middleware/authMiddleware");
 // import routes
 const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
+const recruiterRoutes = require("./routes/recruiter");
 //const interviewRoutes = require("./routes/interview");
 //const notificationRoutes = require("./routes/notification");
 //const recruiterRoutes = require("./routes/recruiter");
@@ -43,6 +44,7 @@ const adminRoutes = require("./routes/admin");
 // Use the routes
 app.use("/auth", authRoutes);
 app.use("/admin-dashboard", adminRoutes);
+app.use("/recruiter-dashboard", recruiterRoutes);
 //app.use("/interviews", interviewRoutes);
 //app.use("/notifications", notificationRoutes);
 //app.use("/recruiter", recruiterRoutes);
