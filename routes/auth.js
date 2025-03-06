@@ -82,7 +82,7 @@ router.post("/login", async (req, res) => {
     if (user.role === "admin") {
       res.redirect("/admin-dashboard");
     } else if (user.role === "recruiter") {
-      res.redirect("/recruiter-dashboard");
+      res.redirect("/recruiter");
     } else {
       res.redirect("/dashboard");
     }
