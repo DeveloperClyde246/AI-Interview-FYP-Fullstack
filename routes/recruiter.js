@@ -148,4 +148,19 @@ try {
 }
 });
 
+router.post("/interview/:id/unassign-candidate", async (req, res) => {
+    try {
+      const { candidateId } = req.body;
+      await Interview.findByIdAndUpdate(req.params.id, {
+        $pull: { candidates: new mongoose.Types.ObjectId(candidateId) }
+      });
+  
+      res.redirect(`/recruiter/interview/${req.params.id}`);
+    } catch (error) {
+      console.error("❌ Error unassigning candidate:", error.message);
+      res.status(500).json({ message: "Error unassigning candidate" });
+    }
+});
+  
+
 module.exports = router;
