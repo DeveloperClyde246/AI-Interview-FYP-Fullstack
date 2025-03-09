@@ -13,29 +13,75 @@ router.use(authMiddleware(["recruiter"]));
 
 // Recruiter Dashboard
 router.get("/", async (req, res) => {
-    try {
-      const recruiterId = new mongoose.Types.ObjectId(req.user.id);
+  try {
+    const recruiterId = req.user.id;
 
-        // Fetch notifications for this recruiter
-        const notifications =await Notification.find({ userId: "67c80e2255dd45082cecb430" })
-        .sort({ createdAt: -1 });
+    // Check for interviews scheduled within the next 24 hours
+    const now = new Date();
+    const nextDay = new Date();
+    nextDay.setHours(now.getHours() + 24); // 24 hours from now
 
-         // Fetch interviews assigned to this recruiter
-        const interviews = await Interview.find({ recruiterId })
-        .populate("candidates", "name email") // ✅ Use "candidates" instead of "candidateId"
-        .sort({ scheduled_date: -1 });
+    const upcomingInterviews = await Interview.find({
+      recruiterId,
+      scheduled_date: { $gte: now, $lte: nextDay }
+    }).populate("candidates", "_id");
 
-        res.render("recruiter-dashboard", {
-            title: "Recruiter Dashboard",
-            username: req.cookies.username,
-            interviews,
-            notifications
-        });//
-    } catch (error) {
-        console.error("❌ Error loading recruiter dashboard:", error.message);
-        res.status(500).json({ message: "Error loading dashboard" });
+    let notificationsAdded = 0;
+
+    for (const interview of upcomingInterviews) {
+      // Check if a notification already exists
+      const existingNotification = await Notification.findOne({
+        userId: recruiterId,
+        message: `Reminder: You have an interview titled "${interview.title}" scheduled soon.`
+      });
+
+      if (!existingNotification) {
+        await Notification.create({
+          userId: recruiterId,
+          message: `Reminder: You have an interview titled "${interview.title}" scheduled soon.`,
+          status: "unread",
+        });
+        notificationsAdded++;
+      }
+
+      // Notify all assigned candidates
+      for (const candidate of interview.candidates) {
+        const candidateNotification = await Notification.findOne({
+          userId: candidate._id,
+          message: `Reminder: You have an interview titled "${interview.title}" scheduled soon.`,
+        });
+
+        if (!candidateNotification) {
+          await Notification.create({
+            userId: candidate._id,
+            message: `Reminder: You have an interview titled "${interview.title}" scheduled soon.`,
+            status: "unread",
+          });
+          notificationsAdded++;
+        }
+      }
     }
+
+    // Fetch notifications after checking for new ones
+    const notifications = await Notification.find({ userId: recruiterId }).sort({ createdAt: -1 });
+
+    // Fetch interviews assigned to this recruiter
+    const interviews = await Interview.find({ recruiterId })
+      .populate("candidates", "name email")
+      .sort({ scheduled_date: -1 });
+
+    res.render("recruiter", {
+      title: "Recruiter Dashboard",
+      username: req.cookies.username,
+      notifications,
+      interviews
+    });
+  } catch (error) {
+    console.error("❌ Error loading recruiter dashboard:", error.message);
+    res.status(500).json({ message: "Error loading dashboard" });
+  }
 });
+
 
 
 // // Storage for Video Uploads (if using file uploads)
@@ -82,7 +128,7 @@ router.post("/create-interview", async (req, res) => {
       });
   
       await interview.save();
-      res.redirect("/recruiter-dashboard"); // Redirect after saving
+      res.redirect("/recruiter"); // Redirect after saving
     } catch (error) {
       console.error("❌ Error creating interview:", error.message);
       res.status(500).json({ message: "Error creating interview" });

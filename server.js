@@ -36,6 +36,7 @@ const authMiddleware = require("./middleware/authMiddleware");
 const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
 const recruiterRoutes = require("./routes/recruiter");
+const notificationRoutes = require("./routes/notification");
 //const interviewRoutes = require("./routes/interview");
 //const notificationRoutes = require("./routes/notification");
 //const recruiterRoutes = require("./routes/recruiter");
@@ -45,6 +46,7 @@ const recruiterRoutes = require("./routes/recruiter");
 app.use("/auth", authRoutes);
 app.use("/admin-dashboard", adminRoutes);
 app.use("/recruiter", recruiterRoutes);
+app.use("/notifications", notificationRoutes);
 //app.use("/interviews", interviewRoutes);
 //app.use("/notifications", notificationRoutes);
 //app.use("/recruiter", recruiterRoutes);
@@ -63,8 +65,8 @@ app.get("/admin-dashboard", authMiddleware(["admin"]), (req, res) => {
   res.render("admin-dashboard", { title: "Admin Dashboard", username: req.cookies.username });
 });
 
-app.get("/recruiter-dashboard", authMiddleware(["recruiter"]), (req, res) => {
-  res.render("recruiter-dashboard", { title: "Recruiter Dashboard", username: req.cookies.username });
+app.get("/recruiter", authMiddleware(["recruiter"]), (req, res) => {
+  res.render("recruiter", { title: "Recruiter Dashboard", username: req.cookies.username });
 });
 
 
