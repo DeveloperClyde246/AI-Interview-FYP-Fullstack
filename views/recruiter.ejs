@@ -8,10 +8,15 @@
     <li>No new notifications</li>
   <% } else { %>
     <% notifications.forEach(notification => { %>
-      <li><%= notification.message %> - <%= notification.status === "unread" ? "🔔" : "✅" %></li>
+      <li>
+        <a href="/notifications/<%= notification._id %>">
+          <%= notification.message %> - <%= new Date(notification.createdAt).toLocaleString() %> 
+        </a> - <%= notification.status === "unread" ? "🔔" : "✅" %>
+      </li>
     <% }) %>
   <% } %>
 </ul>
+
 
 <!-- Interviews -->
 <h3>Your Scheduled Interviews</h3>
