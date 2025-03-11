@@ -84,7 +84,7 @@ router.post("/login", async (req, res) => {
     } else if (user.role === "recruiter") {
       res.redirect("/recruiter");
     } else {
-      res.redirect("/dashboard");
+      res.redirect("/candidate");
     }
   } catch (err) {
     res.render("login", { title: "Login", errorMessage: "Server error" });
