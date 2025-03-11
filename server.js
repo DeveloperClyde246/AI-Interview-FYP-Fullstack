@@ -37,19 +37,15 @@ const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
 const recruiterRoutes = require("./routes/recruiter");
 const notificationRoutes = require("./routes/notification");
-//const interviewRoutes = require("./routes/interview");
-//const notificationRoutes = require("./routes/notification");
-//const recruiterRoutes = require("./routes/recruiter");
-
+const candidateRoutes = require("./routes/candidate");
 
 // Use the routes
 app.use("/auth", authRoutes);
 app.use("/admin-dashboard", adminRoutes);
 app.use("/recruiter", recruiterRoutes);
 app.use("/notifications", notificationRoutes);
-//app.use("/interviews", interviewRoutes);
-//app.use("/notifications", notificationRoutes);
-//app.use("/recruiter", recruiterRoutes);
+app.use("/candidate", candidateRoutes);
+
 
 
 // Render home page index.js

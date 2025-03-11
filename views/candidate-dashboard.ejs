@@ -1,0 +1,43 @@
+<h2>Candidate Dashboard</h2>
+<p>Welcome, <%= username %>!</p>
+
+<h3>Notifications</h3>
+<ul>
+  <% if (notifications.length === 0) { %>
+    <li>No new notifications</li>
+  <% } else { %>
+    <% notifications.forEach(notification => { %>
+      <li>
+        <a href="/candidate/notifications/<%= notification._id %>">
+          <%= notification.message %> - <%= new Date(notification.createdAt).toLocaleString() %>
+        </a> (<%= notification.status === "unread" ? "🔔" : "✅" %>)
+      </li>
+    <% }) %>
+  <% } %>
+</ul>
+
+
+
+<h3>Your Scheduled Interviews</h3>
+<table border="1">
+  <tr>
+    <th>Title</th>
+    <th>Recruiter</th>
+    <th>Scheduled Date</th>
+    <th>Status</th>
+  </tr>
+  <% if (interviews.length === 0) { %>
+    <tr><td colspan="4">No scheduled interviews</td></tr>
+  <% } else { %>
+    <% interviews.forEach(interview => { %>
+      <tr>
+        <td><%= interview.title %></td>
+        <td><%= interview.recruiterId.name %> (<%= interview.recruiterId.email %>)</td>
+        <td><%= new Date(interview.scheduled_date).toLocaleString() %></td>
+        <td><%= interview.status || "Pending" %></td>
+      </tr>
+    <% }) %>
+  <% } %>
+</table>
+
+<a href="/auth/logout">Logout</a>
