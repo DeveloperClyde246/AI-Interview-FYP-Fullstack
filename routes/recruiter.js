@@ -108,32 +108,34 @@ router.get("/create-interview", async (req, res) => {
   
 // ✅ Handle Creating a New Interview Session (POST Request)
 router.post("/create-interview", async (req, res) => {
-    const { title, description, scheduled_date, questions, answerTypes, candidateIds } = req.body;
-    const recruiterId = req.user.id;
-  
-    try {
-      // Convert questions into structured format
-      const formattedQuestions = questions.map((q, index) => ({
-        questionText: q,
-        answerType: answerTypes[index], // "text" or "video"
-      }));
-  
-      const interview = new Interview({
-        recruiterId,
-        title,
-        description,
-        scheduled_date: new Date(scheduled_date), // ✅ Save the scheduled date as a Date object
-        questions: formattedQuestions,
-        candidates: candidateIds ? candidateIds.map(id => new mongoose.Types.ObjectId(id)) : []
-      });
-  
-      await interview.save();
-      res.redirect("/recruiter"); // Redirect after saving
-    } catch (error) {
-      console.error("❌ Error creating interview:", error.message);
-      res.status(500).json({ message: "Error creating interview" });
-    }
-  });
+  const { title, description, scheduled_date, questions, answerTypes, recordingRequired, candidateIds } = req.body;
+  const recruiterId = req.user.id;
+
+  try {
+    // Convert questions into structured format
+    const formattedQuestions = questions.map((q, index) => ({
+      questionText: q,
+      answerType: answerTypes[index], // "text", "video", or "recording"
+      recordingRequired: recordingRequired ? recordingRequired[index] === "true" : false
+    }));
+
+    const interview = new Interview({
+      recruiterId,
+      title,
+      description,
+      scheduled_date: new Date(scheduled_date),
+      questions: formattedQuestions,
+      candidates: candidateIds ? candidateIds.map(id => new mongoose.Types.ObjectId(id)) : []
+    });
+
+    await interview.save();
+    res.redirect("/recruiter");
+  } catch (error) {
+    console.error("❌ Error creating interview:", error.message);
+    res.status(500).json({ message: "Error creating interview" });
+  }
+});
+
   
 // ✅ View All Interviews Managed by the Recruiter
 router.get("/interviews", async (req, res) => {
@@ -210,20 +212,29 @@ router.post("/interview/:id/unassign-candidate", async (req, res) => {
   
 
 router.post("/interview/:id/edit", async (req, res) => {
-    try {
-      const { title, description, scheduled_date } = req.body;
-  
-      await Interview.findByIdAndUpdate(req.params.id, {
-        title,
-        description,
-        scheduled_date: new Date(scheduled_date)
-      });
-  
-      res.redirect(`/recruiter/interview/${req.params.id}`);
-    } catch (error) {
-      console.error("❌ Error updating interview:", error.message);
-      res.status(500).json({ message: "Error updating interview" });
-    }
+  const { title, description, scheduled_date, questions, answerTypes, recordingRequired } = req.body;
+
+  try {
+    // Convert questions into structured format
+    const formattedQuestions = questions.map((q, index) => ({
+      questionText: q,
+      answerType: answerTypes[index], // "text", "video", or "recording"
+      recordingRequired: recordingRequired ? recordingRequired[index] === "true" : false
+    }));
+
+    await Interview.findByIdAndUpdate(req.params.id, {
+      title,
+      description,
+      scheduled_date: new Date(scheduled_date),
+      questions: formattedQuestions
+    });
+
+    res.redirect(`/recruiter/interview/${req.params.id}`);
+  } catch (error) {
+    console.error("❌ Error updating interview:", error.message);
+    res.status(500).json({ message: "Error updating interview" });
+  }
 });
+
 
 module.exports = router;

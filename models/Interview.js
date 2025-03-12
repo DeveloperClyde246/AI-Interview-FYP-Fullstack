@@ -4,12 +4,13 @@ const InterviewSchema = new mongoose.Schema({
   recruiterId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   title: { type: String, required: true },
   description: { type: String, required: true },
-  scheduled_date: { type: Date, required: true }, // ✅ Fix: Ensure scheduled_date is a Date
-  candidates: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // Store selected candidates
+  scheduled_date: { type: Date, required: true },
+  candidates: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   questions: [
     {
       questionText: String,
-      answerType: { type: String, enum: ["text", "video"], required: true },
+      answerType: { type: String, enum: ["text", "video", "recording"], required: true }, // ✅ Added "recording"
+      recordingRequired: { type: Boolean, default: false } // ✅ Indicates if recording is required
     }
   ],
   createdAt: { type: Date, default: Date.now }
