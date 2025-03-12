@@ -24,6 +24,10 @@
   },
   "devDependencies": {
     "@types/node": "^22.13.9",
-    "nodemon": "^3.1.9"
+    "chai": "^5.2.0",
+    "fs-extra": "^11.3.0",
+    "mocha": "^11.1.0",
+    "nodemon": "^3.1.9",
+    "supertest": "^7.0.0"
   }
 }
