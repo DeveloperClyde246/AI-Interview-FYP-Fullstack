@@ -159,4 +159,9 @@ router.post("/profile/edit-password", async (req, res) => {
   // });
 
 
+  router.get("/faq", (req, res) => {
+    res.render("candidate-faq", { title: "FAQ" });
+  });
+  
+
 module.exports = router;
