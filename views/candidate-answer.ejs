@@ -1,0 +1,69 @@
+<h2>Answer Questions - <%= interview.title %></h2>
+
+<form action="/candidate/interview/<%= interview._id %>/submit" method="POST" enctype="multipart/form-data">
+  <% interview.questions.forEach((question, index) => { %>
+    <p><strong>Question <%= index + 1 %>:</strong> <%= question.questionText %></p>
+
+    <% if (question.answerType === "text") { %>
+      <textarea name="answers[]" required></textarea>
+    <% } else if (question.answerType === "video") { %>
+      <input type="file" name="answers[]" accept="video/*" required>
+    <% } else if (question.answerType === "recording") { %>
+      <button type="button" onclick="startVideoRecording('<%= index %>')">Start Recording</button>
+      <button type="button" onclick="stopVideoRecording('<%= index %>')">Stop Recording</button>
+      <video id="video-preview-<%= index %>" controls></video>
+      <input type="hidden" name="answers[]" id="recorded-video-<%= index %>">
+    <% } %>
+
+    <hr>
+  <% }) %>
+
+  <button type="submit">Submit Answers</button>
+</form>
+
+<a href="/candidate/interviews">Back to Interviews</a>
+
+<script>
+  let mediaRecorder;
+  let recordedBlobs = [];
+
+  function startVideoRecording(index) {
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      .then(stream => {
+        document.getElementById(`video-preview-${index}`).srcObject = stream;
+        document.getElementById(`video-preview-${index}`).play();
+        mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+        recordedBlobs = [];
+
+        mediaRecorder.ondataavailable = event => {
+          if (event.data.size > 0) recordedBlobs.push(event.data);
+        };
+
+        mediaRecorder.start();
+      })
+      .catch(error => console.error("❌ Error accessing camera:", error));
+  }
+
+  function stopVideoRecording(index) {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+      mediaRecorder.stop();
+
+      mediaRecorder.onstop = () => {
+        const videoBlob = new Blob(recordedBlobs, { type: "video/webm" });
+        const videoUrl = URL.createObjectURL(videoBlob);
+        const videoPreview = document.getElementById(`video-preview-${index}`);
+
+        // ✅ Set the video source and allow user to replay it
+        videoPreview.srcObject = null;
+        videoPreview.src = videoUrl;
+        videoPreview.controls = true;
+
+        const reader = new FileReader();
+        reader.readAsDataURL(videoBlob);
+        reader.onloadend = function () {
+          document.getElementById(`recorded-video-${index}`).value = reader.result;
+        };
+      };
+    }
+  }
+</script>

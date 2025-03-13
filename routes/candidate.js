@@ -158,10 +158,56 @@ router.post("/profile/edit-password", async (req, res) => {
   //   }
   // });
 
+// ✅ View Assigned Interviews
+router.get("/interviews", async (req, res) => {
+  try {
+    const candidateId = new mongoose.Types.ObjectId(req.user.id);
+    
+    const interviews = await Interview.find({ candidates: candidateId })
+      .populate("recruiterId", "name email")
+      .sort({ scheduled_date: -1 });
 
-  router.get("/faq", (req, res) => {
-    res.render("candidate-faq", { title: "FAQ" });
-  });
+    res.render("candidate-interviews", { title: "My Interviews", interviews });
+  } catch (error) {
+    console.error("❌ Error fetching interviews:", error.message);
+    res.status(500).json({ message: "Error fetching interviews" });
+  }
+});
+
+// ✅ View Interview Questions & Answer Form
+router.get("/interview/:id", async (req, res) => {
+  try {
+    const interview = await Interview.findById(req.params.id);
+    if (!interview) return res.status(404).send("Interview not found");
+
+    res.render("candidate-answer", { title: "Answer Questions", interview });
+  } catch (error) {
+    console.error("❌ Error fetching interview:", error.message);
+    res.status(500).json({ message: "Error fetching interview" });
+  }
+});
+
+// ✅ Handle Answer Submission
+router.post("/interview/:id/submit", async (req, res) => {
+  try {
+    const { answers } = req.body;
+    const candidateId = req.user.id;
+    
+    await Interview.findByIdAndUpdate(req.params.id, {
+      $push: { responses: { candidate: candidateId, answers } }
+    });
+
+    res.redirect("/candidate/interviews");
+  } catch (error) {
+    console.error("❌ Error submitting answers:", error.message);
+    res.status(500).json({ message: "Error submitting answers" });
+  }
+});
+
+
+router.get("/faq", (req, res) => {
+  res.render("candidate-faq", { title: "FAQ" });
+});
   
 
 module.exports = router;

@@ -10,7 +10,12 @@ const InterviewSchema = new mongoose.Schema({
     {
       questionText: String,
       answerType: { type: String, enum: ["text", "video", "recording"], required: true }, // ✅ Added "recording"
-      recordingRequired: { type: Boolean, default: false } // ✅ Indicates if recording is required
+    }
+  ],
+  responses: [
+    {
+      candidate: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      answers: [String], // Store text answers, video links, or recordings
     }
   ],
   createdAt: { type: Date, default: Date.now }

@@ -212,22 +212,16 @@ router.post("/interview/:id/unassign-candidate", async (req, res) => {
   
 
 router.post("/interview/:id/edit", async (req, res) => {
-  const { title, description, scheduled_date, questions, answerTypes, recordingRequired } = req.body;
-
   try {
-    // Convert questions into structured format
+    const { questions, answerTypes } = req.body;
+
+    // ✅ Convert questions into structured format
     const formattedQuestions = questions.map((q, index) => ({
       questionText: q,
       answerType: answerTypes[index], // "text", "video", or "recording"
-      recordingRequired: recordingRequired ? recordingRequired[index] === "true" : false
     }));
 
-    await Interview.findByIdAndUpdate(req.params.id, {
-      title,
-      description,
-      scheduled_date: new Date(scheduled_date),
-      questions: formattedQuestions
-    });
+    await Interview.findByIdAndUpdate(req.params.id, { questions: formattedQuestions });
 
     res.redirect(`/recruiter/interview/${req.params.id}`);
   } catch (error) {
