@@ -6,8 +6,8 @@
 
     <% if (question.answerType === "text") { %>
       <textarea name="answers[]" required></textarea>
-    <% } else if (question.answerType === "video") { %>
-      <input type="file" name="answers[]" accept="video/*" required>
+    <% } else if (question.answerType === "file") { %>
+      <input type="file" name="fileAnswers" accept="*/*"> <!-- ✅ Uses correct Multer field -->
     <% } else if (question.answerType === "recording") { %>
       <button type="button" onclick="startVideoRecording('<%= index %>')">Start Recording</button>
       <button type="button" onclick="stopVideoRecording('<%= index %>')">Stop Recording</button>
@@ -31,7 +31,6 @@
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
       .then(stream => {
         document.getElementById(`video-preview-${index}`).srcObject = stream;
-        document.getElementById(`video-preview-${index}`).play();
         mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
         recordedBlobs = [];
 
@@ -58,6 +57,7 @@
         videoPreview.src = videoUrl;
         videoPreview.controls = true;
 
+        // ✅ Convert Video to Base64 and Store in Hidden Input
         const reader = new FileReader();
         reader.readAsDataURL(videoBlob);
         reader.onloadend = function () {

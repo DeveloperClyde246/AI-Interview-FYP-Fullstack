@@ -10,9 +10,10 @@ dotenv.config();
 const app = express();
 
 // Middleware setup
-app.use(express.json());
+// ✅ Increase request size limits for video uploads
+app.use(express.json({ limit: "200mb" })); // ✅ Allows large JSON requests
+app.use(express.urlencoded({ extended: true, limit: "200mb" })); // ✅ Allows large form submissions
 app.use(cors());
-app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Set up EJS for templating

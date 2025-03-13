@@ -9,7 +9,7 @@ const InterviewSchema = new mongoose.Schema({
   questions: [
     {
       questionText: String,
-      answerType: { type: String, enum: ["text", "video", "recording"], required: true }, // ✅ Added "recording"
+      answerType: { type: String, enum: ["text", "file", "recording"], required: true }, 
     }
   ],
   responses: [

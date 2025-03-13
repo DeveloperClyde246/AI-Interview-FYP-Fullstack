@@ -65,8 +65,8 @@
           <input type="text" name="questions[]" value="<%= question.questionText %>" required>
           <select name="answerTypes[]">
             <option value="text" <%= question.answerType === "text" ? "selected" : "" %>>Text-Based Answer</option>
-            <option value="video" <%= question.answerType === "video" ? "selected" : "" %>>Video Upload</option>
-            <option value="recording" <%= question.answerType === "recording" ? "selected" : "" %>>Record in Web Portal</option> <!-- ✅ New Option -->
+            <option value="file" <%= question.answerType === "file" ? "selected" : "" %>>File Upload</option>
+            <option value="recording" <%= question.answerType === "recording" ? "selected" : "" %>>Record in Web Portal</option>
           </select>
         </div>
       <% }) %>
@@ -85,7 +85,7 @@
         <input type="text" name="questions[]" placeholder="Enter question" required>
         <select name="answerTypes[]">
           <option value="text">Text-Based Answer</option>
-          <option value="video">Video Upload</option>
+          <option value="file">File Upload</option>
           <option value="recording">Record in Web Portal</option>
         </select>
       `;

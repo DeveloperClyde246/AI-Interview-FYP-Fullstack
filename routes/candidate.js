@@ -5,12 +5,14 @@ const Notification = require("../models/Notification");
 const mongoose = require("mongoose");
 
 const User = require("../models/User");
-const multer = require("multer");
 const path = require("path");
 
 const bcrypt = require("bcryptjs");
 
 const router = express.Router();
+const multer = require("multer");
+const cloudinary = require("../config/cloudinary");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 // Ensure only candidates can access this page
 router.use(authMiddleware(["candidate"]));
@@ -187,14 +189,53 @@ router.get("/interview/:id", async (req, res) => {
   }
 });
 
-// ✅ Handle Answer Submission
-router.post("/interview/:id/submit", async (req, res) => {
+// ✅ Multer Storage for File Uploads (Manual Uploads)
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "interview_responses",
+    resource_type: "auto",
+    format: async (req, file) => file.mimetype.split("/")[1],
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 200 * 1024 * 1024 }, // ✅ Allow up to 200MB file uploads
+});
+
+router.post("/interview/:id/submit", upload.array("fileAnswers", 5), async (req, res) => {
   try {
-    const { answers } = req.body;
     const candidateId = req.user.id;
-    
+    let processedAnswers = [];
+
+    // ✅ Process File Uploads
+    if (req.files && req.files.length > 0) {
+      req.files.forEach((file) => {
+        processedAnswers.push(file.path); // ✅ Store Cloudinary URL for uploaded files
+      });
+    }
+
+    // ✅ Process Base64 Recorded Video Separately
+    if (req.body.answers) {
+      for (const answer of req.body.answers) {
+        if (answer.startsWith("data:video/webm;base64")) {
+          // ✅ Upload Base64 Video to Cloudinary
+          const uploadResponse = await cloudinary.uploader.upload(answer, {
+            resource_type: "video",
+            folder: "interview_responses",
+          });
+
+          processedAnswers.push(uploadResponse.secure_url);
+        } else {
+          processedAnswers.push(answer); // ✅ Store text-based answers directly
+        }
+      }
+    }
+
+    // ✅ Store Responses in Database
     await Interview.findByIdAndUpdate(req.params.id, {
-      $push: { responses: { candidate: candidateId, answers } }
+      $push: { responses: { candidate: candidateId, answers: processedAnswers } }
     });
 
     res.redirect("/candidate/interviews");
