@@ -212,6 +212,7 @@ router.post("/interview/:id/submit", multer().array("fileAnswers", 5), async (re
   try {
     const candidateId = req.user.id;
     let processedAnswers = [];
+    let videoURL = "";
 
     // ✅ Process File Uploads
     if (req.files && req.files.length > 0) {
@@ -221,7 +222,6 @@ router.post("/interview/:id/submit", multer().array("fileAnswers", 5), async (re
     }
 
     // ✅ Process Cloudinary Video URL Instead of Base64
-    let videoURL = "";
     if (req.body.answers) {
       for (const answer of req.body.answers) {
         if (answer.startsWith("http")) {
@@ -234,23 +234,23 @@ router.post("/interview/:id/submit", multer().array("fileAnswers", 5), async (re
     }
 
     // ✅ Store Responses in Database
-    const interview = await Interview.findByIdAndUpdate(req.params.id, {
-      $push: { responses: { candidate: candidateId, answers: processedAnswers } }
-    }, { new: true });
+    const interview = await Interview.findById(req.params.id);
+    interview.responses.push({ candidate: candidateId, answers: processedAnswers });
+    await interview.save();
 
     // ✅ Send Video to AI Analysis (if a video response exists)
     if (videoURL) {
       const aiResponse = await axios.post("http://localhost:5001/analyze-video", { videoURL });
       const { marks } = aiResponse.data; // ✅ AI returns marks
 
-      // ✅ Save marks into the database
-      interview.responses.forEach(response => {
-        if (response.candidate.toString() === candidateId) {
-          response.marks = marks; // ✅ Attach AI-generated marks
-        }
-      });
-
-      await interview.save();
+      // ✅ Update marks in the database
+      const candidateResponse = interview.responses.find(
+        (response) => response.candidate.toString() === candidateId
+      );
+      if (candidateResponse) {
+        candidateResponse.marks = marks;
+        await interview.save();
+      }
     }
 
     res.redirect("/candidate/interviews");

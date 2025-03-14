@@ -9,13 +9,14 @@ const InterviewSchema = new mongoose.Schema({
   questions: [
     {
       questionText: String,
-      answerType: { type: String, enum: ["text", "file", "recording"], required: true }, 
+      answerType: { type: String, enum: ["text", "file", "recording"], required: true },
     }
   ],
   responses: [
     {
       candidate: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      answers: [String], // Store text answers, video links, or recordings
+      answers: [String], // Store answers (text, file, video)
+      marks: { type: Number, default: null } // ✅ Store AI-generated marks
     }
   ],
   createdAt: { type: Date, default: Date.now }
