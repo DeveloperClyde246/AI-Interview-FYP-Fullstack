@@ -5,12 +5,14 @@ const Notification = require("../models/Notification");
 const mongoose = require("mongoose");
 
 const User = require("../models/User");
-const multer = require("multer");
 const path = require("path");
 
 const bcrypt = require("bcryptjs");
 
 const router = express.Router();
+const multer = require("multer");
+const cloudinary = require("../config/cloudinary");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 // Ensure only candidates can access this page
 router.use(authMiddleware(["candidate"]));
@@ -158,10 +160,103 @@ router.post("/profile/edit-password", async (req, res) => {
   //   }
   // });
 
+// ✅ View Assigned Interviews
+router.get("/interviews", async (req, res) => {
+  try {
+    const candidateId = new mongoose.Types.ObjectId(req.user.id);
+    
+    const interviews = await Interview.find({ candidates: candidateId })
+      .populate("recruiterId", "name email")
+      .sort({ scheduled_date: -1 });
 
-  router.get("/faq", (req, res) => {
-    res.render("candidate-faq", { title: "FAQ" });
-  });
+    res.render("candidate-interviews", { title: "My Interviews", interviews });
+  } catch (error) {
+    console.error("❌ Error fetching interviews:", error.message);
+    res.status(500).json({ message: "Error fetching interviews" });
+  }
+});
+
+// ✅ View Interview Questions & Answer Form
+router.get("/interview/:id", async (req, res) => {
+  try {
+    const interview = await Interview.findById(req.params.id);
+    if (!interview) return res.status(404).send("Interview not found");
+
+    res.render("candidate-answer", { title: "Answer Questions", interview });
+  } catch (error) {
+    console.error("❌ Error fetching interview:", error.message);
+    res.status(500).json({ message: "Error fetching interview" });
+  }
+});
+
+
+
+// ✅ Multer Storage for File Uploads (Manual Uploads)
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "interview_responses",
+    resource_type: "auto",
+    format: async (req, file) => file.mimetype.split("/")[1],
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 200 * 1024 * 1024 }, // ✅ Allow up to 200MB file uploads
+});
+
+router.post("/interview/:id/submit", upload.array("fileAnswers", 5), async (req, res) => {
+  try {
+    const candidateId = req.user.id;
+    let processedAnswers = [];
+
+    // ✅ Debugging: Log incoming data
+    console.log("📩 Received Answers:", req.body.answers);
+    console.log("📁 Received Files:", req.files);
+
+    // ✅ Process File Uploads
+    if (req.files && req.files.length > 0) {
+      req.files.forEach((file) => {
+        processedAnswers.push(file.path); // ✅ Store Cloudinary URL for uploaded files
+      });
+    }
+
+    // ✅ Process Cloudinary Video URL Instead of Base64
+    if (req.body.answers) {
+      for (const answer of req.body.answers) {
+        if (answer.startsWith("http")) {
+          processedAnswers.push(answer); // ✅ Direct Cloudinary URL
+        } else if (answer.trim() !== "" && answer !== "undefined") {
+          processedAnswers.push(answer); // ✅ Store text-based answers
+        }
+      }
+    }
+
+    // ✅ Debugging: Ensure all answers are stored
+
+
+    // ✅ Debugging: Ensure all answers are stored
+    console.log("✅ Final Processed Answers:", processedAnswers);
+
+    // ✅ Store Responses in Database
+    await Interview.findByIdAndUpdate(req.params.id, {
+      $push: { responses: { candidate: candidateId, answers: processedAnswers } }
+    });
+
+    res.redirect("/candidate/interviews");
+  } catch (error) {
+    console.error("❌ Error submitting answers:", error.message);
+    res.status(500).json({ message: "Error submitting answers" });
+  }
+});
+
+
+
+
+router.get("/faq", (req, res) => {
+  res.render("candidate-faq", { title: "FAQ" });
+});
   
 
 module.exports = router;

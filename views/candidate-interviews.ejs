@@ -1,0 +1,24 @@
+<h2>My Interviews</h2>
+
+<table border="1">
+  <tr>
+    <th>Title</th>
+    <th>Recruiter</th>
+    <th>Scheduled Date</th>
+    <th>Actions</th>
+  </tr>
+  <% if (interviews.length === 0) { %>
+    <tr><td colspan="4">No assigned interviews</td></tr>
+  <% } else { %>
+    <% interviews.forEach(interview => { %>
+      <tr>
+        <td><%= interview.title %></td>
+        <td><%= interview.recruiterId.name %> (<%= interview.recruiterId.email %>)</td>
+        <td><%= new Date(interview.scheduled_date).toLocaleString() %></td>
+        <td><a href="/candidate/interview/<%= interview._id %>">Answer Questions</a></td>
+      </tr>
+    <% }) %>
+  <% } %>
+</table>
+
+<a href="/candidate">Back to Dashboard</a>
