@@ -45,8 +45,6 @@ router.get("/", async (req, res) => {
 });
 
 
-
-
 //Notifications------------------------------------
 // ✅ View Notification Details
 router.get("/notifications/:id", async (req, res) => {
@@ -71,6 +69,8 @@ try {
     res.status(500).json({ message: "Error deleting notification" });
 }
 });
+
+
 
 //Profile------------------------------------
 // // ✅ Set Up Multer for Resume Upload
@@ -162,7 +162,10 @@ router.post("/profile/edit-password", async (req, res) => {
   //   }
   // });
 
+
+//Interviews------------------------------------
 // ✅ View Assigned Interviews
+
 router.get("/interviews", async (req, res) => {
   try {
     const candidateId = new mongoose.Types.ObjectId(req.user.id);
@@ -208,48 +211,83 @@ const upload = multer({
   limits: { fileSize: 200 * 1024 * 1024 }, // ✅ Allow up to 200MB file uploads
 });
 
-router.post("/interview/:id/submit", multer().array("fileAnswers", 5), async (req, res) => {
+router.post("/interview/:id/submit", upload.array("fileAnswers", 5), async (req, res) => {
   try {
     const candidateId = req.user.id;
     let processedAnswers = [];
     let videoURL = "";
 
-    // ✅ Process File Uploads
-    if (req.files && req.files.length > 0) {
-      req.files.forEach((file) => {
-        processedAnswers.push(file.path); // ✅ Store Cloudinary URL for uploaded files
-      });
+    // ✅ Check if the candidate has already submitted a response
+    const interview = await Interview.findById(req.params.id);
+    if (!interview) {
+      return res.status(404).json({ message: "Interview not found" });
     }
 
-    // ✅ Process Cloudinary Video URL Instead of Base64
+    const existingResponse = interview.responses.find(
+      (response) => response.candidate.toString() === candidateId
+    );
+
+    if (existingResponse) {
+      return res.status(400).json({ message: "You have already submitted answers for this interview." });
+    }
+
+    // ✅ Debugging: Log received data
+    console.log("📩 Received Answers:", req.body.answers);
+    console.log("📁 Received Files:", req.files);
+
+    // ✅ Process File Uploads
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        console.log("⬆ Uploading file to Cloudinary:", file.originalname);
+        const uploadResponse = await cloudinary.uploader.upload(file.path, {
+          resource_type: "auto",
+          folder: "interview_responses"
+        });
+        console.log("✅ File Uploaded:", uploadResponse.secure_url);
+        processedAnswers.push(uploadResponse.secure_url);
+      }
+    }
+
+    // ✅ Process Cloudinary Video URL (Ensure It’s Not Added Multiple Times)
     if (req.body.answers) {
       for (const answer of req.body.answers) {
-        if (answer.startsWith("http")) {
-          videoURL = answer; // ✅ Store Cloudinary Video URL
-          processedAnswers.push(answer);
+        if (answer.startsWith("http") && answer.includes("video/upload")) {
+          if (!videoURL) {  // ✅ Store video URL only once
+            videoURL = answer;
+            processedAnswers.push(answer);
+          }
         } else {
-          processedAnswers.push(answer); // ✅ Store text-based answers directly
+          processedAnswers.push(answer);
         }
       }
     }
 
     // ✅ Store Responses in Database
-    const interview = await Interview.findById(req.params.id);
-    interview.responses.push({ candidate: candidateId, answers: processedAnswers });
+    const newResponse = { candidate: candidateId, answers: processedAnswers, marks: null };
+    interview.responses.push(newResponse);
     await interview.save();
+    console.log("✅ Responses saved to database:", newResponse);
 
     // ✅ Send Video to AI Analysis (if a video response exists)
     if (videoURL) {
+      console.log("📡 Sending video to AI for analysis:", videoURL);
       const aiResponse = await axios.post("http://localhost:5001/analyze-video", { videoURL });
+      console.log("🤖 AI Response:", aiResponse.data);
+
       const { marks } = aiResponse.data; // ✅ AI returns marks
 
-      // ✅ Update marks in the database
-      const candidateResponse = interview.responses.find(
-        (response) => response.candidate.toString() === candidateId
+      // ✅ Find and update the response in the database
+      const updatedInterview = await Interview.findOneAndUpdate(
+        { _id: req.params.id, "responses.candidate": candidateId }, // Find correct interview and response
+        { $set: { "responses.$.marks": marks } }, // Update only the marks field
+        { new: true } // Return updated document
       );
-      if (candidateResponse) {
-        candidateResponse.marks = marks;
-        await interview.save();
+
+      if (updatedInterview) {
+        console.log("✅ Marks updated successfully in database:", marks);
+        console.log("📂 Updated Interview Document:", JSON.stringify(updatedInterview, null, 2));
+      } else {
+        console.error("❌ Failed to update marks.");
       }
     }
 
@@ -262,7 +300,7 @@ router.post("/interview/:id/submit", multer().array("fileAnswers", 5), async (re
 
 
 
-
+//FAQ------------------------------------
 router.get("/faq", (req, res) => {
   res.render("candidate-faq", { title: "FAQ" });
 });
