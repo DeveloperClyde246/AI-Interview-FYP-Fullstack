@@ -189,6 +189,8 @@ router.get("/interview/:id", async (req, res) => {
   }
 });
 
+
+
 // ✅ Multer Storage for File Uploads (Manual Uploads)
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
@@ -209,6 +211,10 @@ router.post("/interview/:id/submit", upload.array("fileAnswers", 5), async (req,
     const candidateId = req.user.id;
     let processedAnswers = [];
 
+    // ✅ Debugging: Log incoming data
+    console.log("📩 Received Answers:", req.body.answers);
+    console.log("📁 Received Files:", req.files);
+
     // ✅ Process File Uploads
     if (req.files && req.files.length > 0) {
       req.files.forEach((file) => {
@@ -216,22 +222,22 @@ router.post("/interview/:id/submit", upload.array("fileAnswers", 5), async (req,
       });
     }
 
-    // ✅ Process Base64 Recorded Video Separately
+    // ✅ Process Cloudinary Video URL Instead of Base64
     if (req.body.answers) {
       for (const answer of req.body.answers) {
-        if (answer.startsWith("data:video/webm;base64")) {
-          // ✅ Upload Base64 Video to Cloudinary
-          const uploadResponse = await cloudinary.uploader.upload(answer, {
-            resource_type: "video",
-            folder: "interview_responses",
-          });
-
-          processedAnswers.push(uploadResponse.secure_url);
-        } else {
-          processedAnswers.push(answer); // ✅ Store text-based answers directly
+        if (answer.startsWith("http")) {
+          processedAnswers.push(answer); // ✅ Direct Cloudinary URL
+        } else if (answer.trim() !== "" && answer !== "undefined") {
+          processedAnswers.push(answer); // ✅ Store text-based answers
         }
       }
     }
+
+    // ✅ Debugging: Ensure all answers are stored
+
+
+    // ✅ Debugging: Ensure all answers are stored
+    console.log("✅ Final Processed Answers:", processedAnswers);
 
     // ✅ Store Responses in Database
     await Interview.findByIdAndUpdate(req.params.id, {
@@ -244,6 +250,8 @@ router.post("/interview/:id/submit", upload.array("fileAnswers", 5), async (req,
     res.status(500).json({ message: "Error submitting answers" });
   }
 });
+
+
 
 
 router.get("/faq", (req, res) => {

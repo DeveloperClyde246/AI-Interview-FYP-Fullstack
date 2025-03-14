@@ -1,13 +1,13 @@
 <h2>Answer Questions - <%= interview.title %></h2>
 
-<form action="/candidate/interview/<%= interview._id %>/submit" method="POST" enctype="multipart/form-data">
+<form id="answer-form" action="/candidate/interview/<%= interview._id %>/submit" method="POST" enctype="multipart/form-data">
   <% interview.questions.forEach((question, index) => { %>
     <p><strong>Question <%= index + 1 %>:</strong> <%= question.questionText %></p>
 
     <% if (question.answerType === "text") { %>
       <textarea name="answers[]" required></textarea>
     <% } else if (question.answerType === "file") { %>
-      <input type="file" name="fileAnswers" accept="*/*"> <!-- ✅ Uses correct Multer field -->
+      <input type="file" name="fileAnswers" accept="*/*">
     <% } else if (question.answerType === "recording") { %>
       <button type="button" onclick="startVideoRecording('<%= index %>')">Start Recording</button>
       <button type="button" onclick="stopVideoRecording('<%= index %>')">Stop Recording</button>
@@ -18,7 +18,7 @@
     <hr>
   <% }) %>
 
-  <button type="submit">Submit Answers</button>
+  <button type="submit" id="submit-btn">Submit Answers</button>
 </form>
 
 <a href="/candidate/interviews">Back to Interviews</a>
@@ -26,6 +26,9 @@
 <script>
   let mediaRecorder;
   let recordedBlobs = [];
+  let isUploading = false;
+  let cloudinaryPreset = "interview_responses"; // Update this from Cloudinary settings
+  let cloudinaryUploadURL = "https://api.cloudinary.com/v1_1/dnxuioifx/video/upload"; // Replace with your Cloudinary name
 
   function startVideoRecording(index) {
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
@@ -47,23 +50,43 @@
     if (mediaRecorder && mediaRecorder.state !== "inactive") {
       mediaRecorder.stop();
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         const videoBlob = new Blob(recordedBlobs, { type: "video/webm" });
         const videoUrl = URL.createObjectURL(videoBlob);
         const videoPreview = document.getElementById(`video-preview-${index}`);
 
-        // ✅ Set the video source and allow user to replay it
+        // ✅ Set video source to preview before uploading
         videoPreview.srcObject = null;
         videoPreview.src = videoUrl;
         videoPreview.controls = true;
 
-        // ✅ Convert Video to Base64 and Store in Hidden Input
-        const reader = new FileReader();
-        reader.readAsDataURL(videoBlob);
-        reader.onloadend = function () {
-          document.getElementById(`recorded-video-${index}`).value = reader.result;
-        };
+        // ✅ Upload Video to Cloudinary
+        isUploading = true;
+        let formData = new FormData();
+        formData.append("file", videoBlob);
+        formData.append("upload_preset", cloudinaryPreset);
+
+        try {
+          let response = await fetch(cloudinaryUploadURL, {
+            method: "POST",
+            body: formData,
+          });
+
+          let data = await response.json();
+          document.getElementById(`recorded-video-${index}`).value = data.secure_url; // ✅ Store Cloudinary URL in form
+          isUploading = false;
+        } catch (error) {
+          console.error("❌ Error uploading video to Cloudinary:", error);
+        }
       };
     }
   }
+
+  // ✅ Prevent Form Submission Until Cloudinary Upload Completes
+  document.getElementById("answer-form").addEventListener("submit", function (event) {
+    if (isUploading) {
+      event.preventDefault();
+      alert("Please wait for the video to finish uploading before submitting.");
+    }
+  });
 </script>
