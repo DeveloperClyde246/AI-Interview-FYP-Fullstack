@@ -1,0 +1,161 @@
+//------------------this is views/login.ejs
+
+<h2>Login</h2>
+
+<% if (errorMessage) { %>
+  <p style="color: red;"><%= errorMessage %></p>
+<% } %>
+
+<form action="/auth/login" method="POST">
+  <input type="email" name="email" placeholder="Email" required>
+  <input type="password" name="password" placeholder="Password" required>
+  <button type="submit">Login</button>
+</form>
+<p>Don't have an account? <a href="/auth/register">Register</a></p>
+
+
+//---------------------this is views/register.ejs
+
+<h2>Register</h2>
+
+<% if (errorMessage) { %>
+  <p style="color: red;"><%= errorMessage %></p>
+<% } %>
+
+<form action="/auth/register" method="POST">
+  <input type="text" name="name" placeholder="Name" required>
+  <input type="email" name="email" placeholder="Email" required>
+  <input type="password" name="password" placeholder="Password" required>
+  <button type="submit">Register</button>
+</form>
+<p>Already have an account? <a href="/auth/login">Login</a></p>
+
+
+
+//---------------------this is routes/auth.js
+const express = require("express");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+
+const router = express.Router();
+
+// Show Register Page (Only for Candidates)
+router.get("/register", (req, res) => {
+  res.render("register", { title: "Register", errorMessage: null });
+});
+
+// Handle User Registration (Only for Candidates)
+router.post("/register", async (req, res) => {
+  const { name, email, password } = req.body;
+  const role = "candidate"; // Default role for new registrations
+
+  try {
+    // Check if email format is valid
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: "Invalid email format" });
+    }
+
+    // 1. Check if the email is already registered
+    let user = await User.findOne({ email });
+    if (user) {
+      return res.render("register", { title: "Register", errorMessage: "Email already in use" });
+    }
+
+    // 2. Hash the password before saving
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // 3. Create and save the user
+    user = new User({ name, email, password: hashedPassword, role });
+    await user.save();
+
+    // 4. Redirect to login page
+    res.redirect("/auth/login");
+  } catch (err) {
+    res.render("register", { title: "Register", errorMessage: "Server error" });
+  }
+});
+
+// Show Login Page
+router.get("/login", (req, res) => {
+  res.render("login", { title: "Login", errorMessage: null });
+});
+
+// Handle User Login (Supports Multiple Roles)
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // 1. Find the user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.render("login", { title: "Login", errorMessage: "Invalid email or password" });
+    }
+
+    // 2. Check if the entered password matches the stored hashed password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.render("login", { title: "Login", errorMessage: "Invalid email or password" });
+    }
+
+    // 3. Generate a JWT token with user role
+    const token = jwt.sign(
+      { id: user._id, name: user.name, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+
+    // 4. Store JWT and role in cookies
+    res.cookie("token", token, { httpOnly: true });
+    res.cookie("username", user.name, { httpOnly: true });
+    res.cookie("role", user.role, { httpOnly: true });
+
+    // 5. Redirect based on role
+    if (user.role === "admin") {
+      res.redirect("/admin-dashboard");
+    } else if (user.role === "recruiter") {
+      res.redirect("/recruiter");
+    } else {
+      res.redirect("/candidate");
+    }
+  } catch (err) {
+    res.render("login", { title: "Login", errorMessage: "Server error" });
+  }
+});
+
+// Handle User Logout
+router.get("/logout", (req, res) => {
+  res.clearCookie("token");
+  res.clearCookie("username");
+  res.clearCookie("role");
+  res.redirect("/auth/login");
+});
+
+module.exports = router;
+
+
+
+//----------------------------this is models/User.js
+
+const mongoose = require("mongoose");
+
+const UserSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: { 
+    type: String, 
+    enum: ["admin", "candidate", "recruiter"], 
+    required: true 
+  },
+  interviews: [{ type: mongoose.Schema.Types.ObjectId, ref: "Interview" }], // References interviews
+  resume: { type: String, default: null }, // ✅ Store resume file path
+  createdAt: { type: Date, default: Date.now }, // Timestamp for user creation
+  updatedAt: { type: Date, default: Date.now }  // Timestamp for updates
+});
+
+module.exports = mongoose.model("User", UserSchema);
+
+
