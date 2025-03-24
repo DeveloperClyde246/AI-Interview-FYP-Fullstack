@@ -1,55 +1,137 @@
-//------------------this is views/login.ejs
+//-------this is views/admin.ejs
+<script>
+  function validateEmailFormat(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
 
-<h2>Login</h2>
+  function validateForm(event) {
+    const email = document.getElementById("email").value;
+    if (!validateEmailFormat(email)) {
+      alert("Invalid email format! Please enter a valid email.");
+      event.preventDefault(); // Stop form submission
+    }
+  }
 
-<% if (errorMessage) { %>
-  <p style="color: red;"><%= errorMessage %></p>
-<% } %>
+</script>
 
-<form action="/auth/login" method="POST">
-  <input type="email" name="email" placeholder="Email" required>
-  <input type="password" name="password" placeholder="Password" required>
-  <button type="submit">Login</button>
-</form>
-<p>Don't have an account? <a href="/auth/register">Register</a></p>
+<h2>Admin Dashboard</h2>
+<p>Manage all users (Candidates & Recruiters)</p>
 
-
-//---------------------this is views/register.ejs
-
-<h2>Register</h2>
-
-<% if (errorMessage) { %>
-  <p style="color: red;"><%= errorMessage %></p>
-<% } %>
-
-<form action="/auth/register" method="POST">
+<!-- Create New User Form -->
+<h3>Create New User</h3>
+<form action="/admin-dashboard/create" method="POST" onsubmit="validateForm(event)">
   <input type="text" name="name" placeholder="Name" required>
-  <input type="email" name="email" placeholder="Email" required>
+  <input type="email" id="email" name="email" placeholder="Email" required>
   <input type="password" name="password" placeholder="Password" required>
-  <button type="submit">Register</button>
+  <select name="role">
+    <option value="candidate">Candidate</option>
+    <option value="recruiter">Recruiter</option>
+    <option value="admin">Admin</option>
+  </select>
+  <button type="submit">Create User</button>
 </form>
-<p>Already have an account? <a href="/auth/login">Login</a></p>
 
 
+<!-- User List -->
+<h3>All Users</h3>
+<table border="1">
+  <tr>
+    <th>Name</th>
+    <th>Email</th>
+    <th>Role</th>
+    <th>Actions</th>
+  </tr>
+  <% users.forEach(user => { %>
+    <tr>
+      <td><%= user.name %></td>
+      <td><%= user.email %></td>
+      <td><%= user.role %></td>
+      <!-- <td>
+        <button onclick="togglePassword('<%= user._id %>')">Show Password</button>
+        <input type="text" id="password-<%= user._id %>" value="********" readonly>
+      </td> -->
+      <td>
+        <form action="/admin-dashboard/edit/<%= user._id %>" method="POST">
+          <input type="text" name="name" value="<%= user.name %>" required>
+          <input type="email" name="email" value="<%= user.email %>" required>
+          <select name="role">
+            <option value="candidate" <%= user.role === "candidate" ? "selected" : "" %>>Candidate</option>
+            <option value="recruiter" <%= user.role === "recruiter" ? "selected" : "" %>>Recruiter</option>
+            <option value="admin" <%= user.role === "admin" ? "selected" : "" %>>Admin</option>
+          </select>
+          <button type="submit">Edit</button>
+        </form>
+        
+        <!-- Change Password Form -->
+        <form action="/admin-dashboard/change-password/<%= user._id %>" method="POST">
+          <input type="password" name="newPassword" placeholder="New Password" required>
+          <button type="submit">Change Password</button>
+        </form>
 
-//---------------------this is routes/auth.js
+        <form action="/admin-dashboard/delete/<%= user._id %>" method="POST">
+          <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
+        </form>
+      </td>
+    </tr>
+  <% }); %>
+</table>
+
+<a href="/auth/logout">Logout</a>
+
+
+//----this is routes/admin.js
 const express = require("express");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const authMiddleware = require("../middleware/authMiddleware");
+const bcrypt = require("bcryptjs");
 
 const router = express.Router();
 
-// Show Register Page (Only for Candidates)
-router.get("/register", (req, res) => {
-  res.render("register", { title: "Register", errorMessage: null });
+// Ensure only admins can access these routes
+router.use(authMiddleware(["admin"]));
+
+// View all users
+router.get("/", async (req, res) => {
+  try {
+    const users = await User.find();
+    res.render("admin-dashboard", { title: "Admin Dashboard", users });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching users" });
+  }
 });
 
-// Handle User Registration (Only for Candidates)
-router.post("/register", async (req, res) => {
-  const { name, email, password } = req.body;
-  const role = "candidate"; // Default role for new registrations
+// // Get decrypted password (for viewing)
+// router.get("/get-password/:id", async (req, res) => {
+//   try {
+//     const user = await User.findById(req.params.id);
+//     if (!user) return res.status(404).json({ message: "User not found" });
 
+//     res.json({ password: user.password }); // Sending hashed password (for security, don't send plaintext!)
+//   } catch (error) {
+//     res.status(500).json({ message: "Error fetching password" });
+//   }
+// });
+
+// Change user password
+router.post("/change-password/:id", async (req, res) => {
+  const { newPassword } = req.body;
+
+  try {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await User.findByIdAndUpdate(req.params.id, { password: hashedPassword });
+
+    res.redirect("/admin-dashboard");
+  } catch (error) {
+    res.status(500).json({ message: "Error updating password" });
+  }
+});
+
+
+
+// Create a new user
+router.post("/create", async (req, res) => {
+  const { name, email, password, role } = req.body;
   try {
     // Check if email format is valid
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -59,103 +141,49 @@ router.post("/register", async (req, res) => {
 
     // 1. Check if the email is already registered
     let user = await User.findOne({ email });
-    if (user) {
-      return res.render("register", { title: "Register", errorMessage: "Email already in use" });
-    }
+    if (user) return res.json({ message: "Email already exists" });
 
     // 2. Hash the password before saving
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     // 3. Create and save the user
     user = new User({ name, email, password: hashedPassword, role });
     await user.save();
 
     // 4. Redirect to login page
-    res.redirect("/auth/login");
-  } catch (err) {
-    res.render("register", { title: "Register", errorMessage: "Server error" });
+    res.redirect("/admin-dashboard");
+  } catch (error) {
+    res.status(500).json({ message: "Error creating user" });
   }
 });
 
-// Show Login Page
-router.get("/login", (req, res) => {
-  res.render("login", { title: "Login", errorMessage: null });
-});
-
-// Handle User Login (Supports Multiple Roles)
-router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
+// Edit user details
+router.post("/edit/:id", async (req, res) => {
+  const { name, email, role } = req.body;
   try {
-    // 1. Find the user by email
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.render("login", { title: "Login", errorMessage: "Invalid email or password" });
-    }
-
-    // 2. Check if the entered password matches the stored hashed password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.render("login", { title: "Login", errorMessage: "Invalid email or password" });
-    }
-
-    // 3. Generate a JWT token with user role
-    const token = jwt.sign(
-      { id: user._id, name: user.name, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-
-
-    // 4. Store JWT and role in cookies
-    res.cookie("token", token, { httpOnly: true });
-    res.cookie("username", user.name, { httpOnly: true });
-    res.cookie("role", user.role, { httpOnly: true });
-
-    // 5. Redirect based on role
-    if (user.role === "admin") {
-      res.redirect("/admin-dashboard");
-    } else if (user.role === "recruiter") {
-      res.redirect("/recruiter");
-    } else {
-      res.redirect("/candidate");
-    }
-  } catch (err) {
-    res.render("login", { title: "Login", errorMessage: "Server error" });
+    await User.findByIdAndUpdate(req.params.id, { name, email, role });
+    res.redirect("/admin-dashboard");
+  } catch (error) {
+    res.status(500).json({ message: "Error updating user" });
   }
 });
 
-// Handle User Logout
-router.get("/logout", (req, res) => {
-  res.clearCookie("token");
-  res.clearCookie("username");
-  res.clearCookie("role");
-  res.redirect("/auth/login");
+// Delete a user
+router.post("/delete/:id", async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    // Prevent deleting the main admin account
+    if (user.email === "mainAdmin@gmail.com") {
+      return res.status(403).json({ message: "Cannot delete the main admin account" });
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+    res.redirect("/admin-dashboard");
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting user" });
+  }
 });
+
 
 module.exports = router;
-
-
-
-//----------------------------this is models/User.js
-
-const mongoose = require("mongoose");
-
-const UserSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  role: { 
-    type: String, 
-    enum: ["admin", "candidate", "recruiter"], 
-    required: true 
-  },
-  interviews: [{ type: mongoose.Schema.Types.ObjectId, ref: "Interview" }], // References interviews
-  resume: { type: String, default: null }, // ✅ Store resume file path
-  createdAt: { type: Date, default: Date.now }, // Timestamp for user creation
-  updatedAt: { type: Date, default: Date.now }  // Timestamp for updates
-});
-
-module.exports = mongoose.model("User", UserSchema);
-
-
