@@ -21,6 +21,8 @@ const AdminDashboard = () => {
 
   const createUser = async (e) => {
     e.preventDefault();
+    setError(""); // clear previous error
+  
     try {
       await axios.post("http://localhost:5000/admin-dashboard/create", form, {
         withCredentials: true,
@@ -28,9 +30,17 @@ const AdminDashboard = () => {
       setForm({ name: "", email: "", password: "", role: "candidate" });
       fetchUsers();
     } catch (err) {
-      setError("Could not create user.");
+      if (err.response?.status === 409) {
+        setError("Email already exists.");
+      } else if (err.response?.status === 400) {
+        setError("Invalid email format or missing field.");
+      } else {
+        setError("Server error while creating user.");
+        console.error(err); // still log it
+      }
     }
   };
+  
 
   const updateUser = async (id, updates) => {
     await axios.post(`http://localhost:5000/admin-dashboard/edit/${id}`, updates, {

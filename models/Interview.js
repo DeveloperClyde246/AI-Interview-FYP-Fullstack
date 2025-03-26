@@ -15,8 +15,9 @@ const InterviewSchema = new mongoose.Schema({
   responses: [
     {
       candidate: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      answers: [String], // Store answers (text, file, video)
-      marks: { type: Number, default: null } // ✅ Store AI-generated marks
+      answers: [String],
+      videoMarks: [Number], // ✅ Store individual video marks
+      marks: { type: Number, default: null } // ✅ Store average mark
     }
   ],
   createdAt: { type: Date, default: Date.now }

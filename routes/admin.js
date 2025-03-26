@@ -26,6 +26,10 @@ router.post("/create", async (req, res) => {
   if (!name || !email || !password || !role) {
     return res.status(400).json({ message: "All fields are required" });
   }
+  
+  if (existingUser) {
+    return res.status(409).json({ message: "Email already exists" });
+  }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
