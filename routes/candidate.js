@@ -314,7 +314,7 @@ router.post("/interview/:id/submit", upload.array("fileAnswers", 5), async (req,
 
 
 
-//FAQ------------------------------------
+//FAQ
 router.get("/faq", (req, res) => {
   res.render("candidate-faq", { title: "FAQ" });
 });
