@@ -230,5 +230,24 @@ router.post("/interview/:id/edit", async (req, res) => {
   }
 });
 
+// ✅ Show candidate analysis results for recruiter interviews
+router.get("/interview-results", authMiddleware(["recruiter"]), async (req, res) => {
+  try {
+    const recruiterId = req.user.id;
+
+    const interviews = await Interview.find({ recruiterId })
+      .populate("responses.candidate", "name email")
+      .sort({ createdAt: -1 });
+
+    res.render("recruiter-interview-results", {
+      title: "Interview Results",
+      interviews,
+    });
+  } catch (error) {
+    console.error("❌ Error loading interview results:", error.message);
+    res.status(500).send("Error loading results");
+  }
+});
+
 
 module.exports = router;

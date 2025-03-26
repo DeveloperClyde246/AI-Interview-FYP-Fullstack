@@ -1,0 +1,61 @@
+<h2>Interview Analysis Results</h2>
+
+<% if (interviews.length === 0) { %>
+  <p>No interviews found.</p>
+<% } else { %>
+  <% interviews.forEach(interview => { %>
+    <h3><%= interview.title %> — <%= new Date(interview.scheduled_date).toLocaleString() %></h3>
+    <p><%= interview.description %></p>
+
+    <% if (interview.responses.length === 0) { %>
+      <p>No candidates have answered yet.</p>
+    <% } else { %>
+        <table border="1" cellpadding="5">
+            <thead>
+              <tr>
+                <th>Candidate</th>
+                <th>Email</th>
+                <th>Marks</th>
+                <th>Submitted Answers</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% interview.responses.forEach(response => { %>
+                <tr>
+                  <td><%= response.candidate?.name || "Unknown" %></td>
+                  <td><%= response.candidate?.email || "Unknown" %></td>
+                  <td>
+                    <% if (response.videoMarks && response.videoMarks.length > 0) { %>
+                      <ul>
+                        <% response.videoMarks.forEach((mark, idx) => { %>
+                          <li>Video <%= idx + 1 %>: <%= mark %> marks</li>
+                        <% }) %>
+                      </ul>
+                      <strong>Average: <%= response.marks %> marks</strong>
+                    <% } else { %>
+                      <i>Pending</i>
+                    <% } %>
+                  </td>
+                  <td>
+                    <ul>
+                      <% response.answers.forEach(ans => { %>
+                        <li>
+                          <% if (ans.startsWith("http")) { %>
+                            <a href="<%= ans %>" target="_blank">View File</a>
+                          <% } else { %>
+                            <%= ans %>
+                          <% } %>
+                        </li>
+                      <% }) %>
+                    </ul>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+        </table>
+    <% } %>
+    <hr>
+  <% }) %>
+<% } %>
+
+<a href="/recruiter">← Back to Dashboard</a>
