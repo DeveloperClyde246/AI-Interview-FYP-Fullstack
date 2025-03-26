@@ -11,9 +11,7 @@ def analyze_video():
     if not video_url:
         return jsonify({"error": "No video URL provided"}), 400
 
-    # Simulate AI analysis (Replace this with actual AI model processing)
     marks = random.randint(50, 100)
-
     return jsonify({"marks": marks})
 
 if __name__ == "__main__":

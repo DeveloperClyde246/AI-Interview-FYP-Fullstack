@@ -248,47 +248,61 @@ router.post("/interview/:id/submit", upload.array("fileAnswers", 5), async (req,
       }
     }
 
-    // ✅ Process Cloudinary Video URL (Ensure It’s Not Added Multiple Times)
+    let videoURLs = [];
+
     if (req.body.answers) {
       for (const answer of req.body.answers) {
         if (answer.startsWith("http") && answer.includes("video/upload")) {
-          if (!videoURL) {  // ✅ Store video URL only once
-            videoURL = answer;
-            processedAnswers.push(answer);
-          }
+          videoURLs.push(answer); // ✅ Save all video URLs
+          processedAnswers.push(answer);
         } else {
           processedAnswers.push(answer);
         }
       }
     }
-
-    // ✅ Store Responses in Database
-    const newResponse = { candidate: candidateId, answers: processedAnswers, marks: null };
+    
+    // ✅ Save initial response first with null marks
+    const newResponse = {
+      candidate: candidateId,
+      answers: processedAnswers,
+      videoMarks: [],
+      marks: null
+    };
     interview.responses.push(newResponse);
     await interview.save();
-    console.log("✅ Responses saved to database:", newResponse);
-
-    // ✅ Send Video to AI Analysis (if a video response exists)
-    if (videoURL) {
-      console.log("📡 Sending video to AI for analysis:", videoURL);
-      const aiResponse = await axios.post("http://localhost:5001/analyze-video", { videoURL });
-      console.log("🤖 AI Response:", aiResponse.data);
-
-      const { marks } = aiResponse.data; // ✅ AI returns marks
-
-      // ✅ Find and update the response in the database
-      const updatedInterview = await Interview.findOneAndUpdate(
-        { _id: req.params.id, "responses.candidate": candidateId }, // Find correct interview and response
-        { $set: { "responses.$.marks": marks } }, // Update only the marks field
-        { new: true } // Return updated document
-      );
-
-      if (updatedInterview) {
-        console.log("✅ Marks updated successfully in database:", marks);
-        console.log("📂 Updated Interview Document:", JSON.stringify(updatedInterview, null, 2));
-      } else {
-        console.error("❌ Failed to update marks.");
+    
+    // ✅ Analyze each video and calculate average
+    let videoMarks = [];
+    
+    for (const url of videoURLs) {
+      try {
+        const aiRes = await axios.post("http://localhost:5001/analyze-video", { videoURL: url });
+        const { marks } = aiRes.data;
+        videoMarks.push(marks);
+        console.log(`✅ Video analyzed: ${url} → ${marks}`);
+      } catch (err) {
+        console.error("❌ AI error:", err.message);
       }
+    }
+    
+    const avgMark = videoMarks.length > 0
+      ? Math.round(videoMarks.reduce((a, b) => a + b, 0) / videoMarks.length)
+      : null;
+    
+    // ✅ Update response in DB
+    const updatedInterview = await Interview.findOneAndUpdate(
+      { _id: req.params.id, "responses.candidate": candidateId },
+      { $set: {
+          "responses.$.videoMarks": videoMarks,
+          "responses.$.marks": avgMark
+        }
+      },
+      { new: true }
+    );
+    
+    if (updatedInterview) {
+      console.log("✅ Final average mark:", avgMark);
+      console.log("📊 All marks:", videoMarks);
     }
 
     res.redirect("/candidate/interviews");
