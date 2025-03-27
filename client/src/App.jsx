@@ -15,16 +15,21 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/admin/users" element={<Users />} />
+        
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+
+        <Route path="/admin/users" element={<Users />} />
         <Route path="/admin" element={<AdminDashboard />} />
+
         <Route path="/recruiter" element={<RecruiterDashboard />} />
         <Route path="/recruiter/interviews" element={<RecruiterInterviews />} />
         <Route path="/recruiter/interview/:id" element={<RecruiterInterviewDetails />} />
         <Route path="/recruiter/interview-results" element={<RecruiterInterviewResults />} />
         <Route path="/notifications/:id" element={<NotificationDetails />} />
         <Route path="/recruiter/create-interview" element={<CreateInterview />} />
+
+        
 
       </Routes>
     </BrowserRouter>
