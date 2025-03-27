@@ -87,23 +87,30 @@ router.get("/create-interview", async (req, res) => {
 
 // ✅ Create new interview
 router.post("/create-interview", async (req, res) => {
-  const { title, description, scheduled_date, questions, answerTypes, recordingRequired, candidateIds } = req.body;
+  const { title, description, scheduled_date, questions, candidateIds } = req.body;
   const recruiterId = req.user.id;
 
   try {
-    const formattedQuestions = questions.map((q, index) => ({
-      questionText: q,
-      answerType: answerTypes[index],
-      recordingRequired: recordingRequired ? recordingRequired[index] === "true" : false,
+    // ✅ Validate if questions is an array of objects
+    if (!Array.isArray(questions) || questions.some(q => typeof q !== "object" || !q.questionText)) {
+      return res.status(400).json({ message: "Invalid questions format" });
+    }
+
+    // ✅ Map questions correctly
+    const formattedQuestions = questions.map((q) => ({
+      questionText: q.questionText,
+      answerType: q.answerType || "text", // Default answer type if not provided
+      recordingRequired: q.recordingRequired || false,
     }));
 
+    // ✅ Create new interview with formatted questions
     const interview = new Interview({
       recruiterId,
       title,
       description,
       scheduled_date: new Date(scheduled_date),
       questions: formattedQuestions,
-      candidates: candidateIds ? candidateIds.map(id => new mongoose.Types.ObjectId(id)) : []
+      candidates: candidateIds ? candidateIds.map(id => new mongoose.Types.ObjectId(id)) : [],
     });
 
     await interview.save();
