@@ -26,43 +26,52 @@ router.get("/", async (req, res) => {
     for (const interview of upcomingInterviews) {
       const recruiterMsg = `Reminder: You have an interview titled "${interview.title}" scheduled soon.`;
 
-      const recruiterNotification = await Notification.findOne({
-        userId: recruiterId,
-        message: recruiterMsg,
-      });
-
-      if (!recruiterNotification) {
-        await Notification.create({
+      // ✅ Use `findOneAndUpdate` with upsert to avoid duplicate notifications for recruiter
+      await Notification.findOneAndUpdate(
+        {
           userId: recruiterId,
           message: recruiterMsg,
-          status: "unread",
-        });
-      }
+        },
+        {
+          $setOnInsert: {
+            userId: recruiterId,
+            message: recruiterMsg,
+            status: "unread",
+          },
+        },
+        { upsert: true, new: true }
+      );
 
       for (const candidate of interview.candidates) {
         const candidateMsg = `Reminder: You have an interview titled "${interview.title}" scheduled soon.`;
 
-        const existing = await Notification.findOne({
-          userId: candidate._id,
-          message: candidateMsg,
-        });
-
-        if (!existing) {
-          await Notification.create({
+        // ✅ Use `findOneAndUpdate` with upsert to avoid duplicate notifications for candidates
+        await Notification.findOneAndUpdate(
+          {
             userId: candidate._id,
             message: candidateMsg,
-            status: "unread",
-          });
-        }
+          },
+          {
+            $setOnInsert: {
+              userId: candidate._id,
+              message: candidateMsg,
+              status: "unread",
+            },
+          },
+          { upsert: true, new: true }
+        );
       }
     }
 
+    // ✅ Fetch all notifications after ensuring no duplicates
     const notifications = await Notification.find({ userId: recruiterId }).sort({ createdAt: -1 });
 
+    // ✅ Fetch all interviews for the recruiter
     const interviews = await Interview.find({ recruiterId })
       .populate("candidates", "name email")
       .sort({ scheduled_date: -1 });
 
+    // ✅ Return updated data to frontend
     res.json({
       username: req.cookies.username,
       notifications,
