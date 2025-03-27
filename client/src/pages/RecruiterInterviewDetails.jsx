@@ -11,6 +11,15 @@ const RecruiterInterviewDetails = () => {
   const [newQuestions, setNewQuestions] = useState([]); // ✅ Store new questions
   const [error, setError] = useState("");
 
+  // Form State for Editable Fields
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    scheduled_date: "",
+    answerDuration: 60, // Default to 60 seconds
+  });
+
+  // ✅ Fetch interview details
   const fetchDetails = async () => {
     try {
       const res = await axios.get(`http://localhost:5000/recruiter/interview/${id}`, {
@@ -18,6 +27,13 @@ const RecruiterInterviewDetails = () => {
       });
       setInterview(res.data.interview);
       setAllCandidates(res.data.allCandidates);
+      // Pre-fill the form with interview details
+      setForm({
+        title: res.data.interview.title,
+        description: res.data.interview.description,
+        scheduled_date: res.data.interview.scheduled_date.slice(0, 16), // Format for datetime-local
+        answerDuration: res.data.interview.answerDuration || 60,
+      });
     } catch (err) {
       setError("Failed to load interview details.");
     }
@@ -27,6 +43,7 @@ const RecruiterInterviewDetails = () => {
     fetchDetails();
   }, [id]);
 
+  // ✅ Handle unassigning candidates
   const handleUnassign = async (candidateId) => {
     try {
       await axios.post(
@@ -40,6 +57,7 @@ const RecruiterInterviewDetails = () => {
     }
   };
 
+  // ✅ Handle adding candidates
   const handleAddCandidates = async () => {
     try {
       await axios.post(
@@ -54,44 +72,44 @@ const RecruiterInterviewDetails = () => {
     }
   };
 
+  // ✅ Handle form submission to update interview details
   const handleEditInterview = async (e) => {
     e.preventDefault();
 
     try {
-      const form = e.target;
-      const updatedQuestions = Array.from(form.elements)
+      const formEl = e.target;
+      const updatedQuestions = Array.from(formEl.elements)
         .filter((el) => el.name === "questions[]")
         .map((el, i) => ({
           questionText: el.value,
-          answerType: form.elements[`answerTypes[]`][i].value,
+          answerType: formEl.elements[`answerTypes[]`][i].value,
         }));
 
-      // ✅ Combine existing questions with new questions
-      const combinedQuestions = [
+      // Combine new questions with updated existing questions
+      const allQuestions = [
         ...updatedQuestions,
-        ...newQuestions.map((q) => ({
-          questionText: q.questionText,
-          answerType: q.answerType,
-        })),
+        ...newQuestions,
       ];
 
       await axios.post(
         `http://localhost:5000/recruiter/interview/${id}/edit`,
         {
-          questions: combinedQuestions.map((q) => q.questionText),
-          answerTypes: combinedQuestions.map((q) => q.answerType),
+          title: form.title,
+          description: form.description,
+          scheduled_date: form.scheduled_date,
+          answerDuration: form.answerDuration,
+          questions: allQuestions.map((q) => q.questionText),
+          answerTypes: allQuestions.map((q) => q.answerType),
         },
         { withCredentials: true }
       );
-
-      // ✅ Reset new questions and refetch details
-      setNewQuestions([]);
-      fetchDetails();
+      navigate("/recruiter/interviews"); // Redirect after update
     } catch (err) {
       setError("Failed to update interview.");
     }
   };
 
+  // ✅ Handle new questions addition
   const handleAddNewQuestion = () => {
     setNewQuestions([
       ...newQuestions,
@@ -105,6 +123,12 @@ const RecruiterInterviewDetails = () => {
     setNewQuestions(updatedQuestions);
   };
 
+  // ✅ Handle input changes for title, description, scheduled date, and duration
+  const handleInputChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  // ✅ Handle toggling candidates selection
   const toggleCandidate = (candidateId) => {
     setSelectedCandidates((prev) =>
       prev.includes(candidateId)
@@ -115,17 +139,128 @@ const RecruiterInterviewDetails = () => {
 
   if (!interview) return <p>Loading...</p>;
 
+  // ✅ Get unassigned candidates
   const unassigned = allCandidates.filter(
     (c) => !interview.candidates.some((i) => i._id === c._id)
   );
 
+  // ✅ Get current datetime in the correct format for datetime-local input
+  const getCurrentDateTime = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   return (
     <div>
-      <h2>Interview Details</h2>
-      <p><strong>Title:</strong> {interview.title}</p>
-      <p><strong>Description:</strong> {interview.description}</p>
-      <p><strong>Scheduled Date:</strong> {new Date(interview.scheduled_date).toLocaleString()}</p>
+      <h2>Edit Interview Details</h2>
 
+      <form onSubmit={handleEditInterview}>
+        {/* ✅ Editable Fields */}
+        <label>Interview Title:</label>
+        <input
+          type="text"
+          name="title"
+          value={form.title}
+          onChange={handleInputChange}
+          required
+        />
+        <br />
+
+        <label>Interview Description:</label>
+        <textarea
+          name="description"
+          value={form.description}
+          onChange={handleInputChange}
+          required
+        />
+        <br />
+
+        <label>Scheduled Date:</label>
+        <input
+          type="datetime-local"
+          name="scheduled_date"
+          value={form.scheduled_date}
+          onChange={handleInputChange}
+          min={getCurrentDateTime()} 
+          required
+        />
+        <br />
+
+        <label>Answer Duration (seconds):</label>
+        <input
+          type="number"
+          name="answerDuration"
+          value={form.answerDuration}
+          onChange={handleInputChange}
+          min="10"
+          required
+        />
+        <br />
+
+        {/* ✅ Edit Questions */}
+        <h3>Edit Existing Questions</h3>
+        <div id="questions-container">
+          {interview.questions.map((q, i) => (
+            <div key={i} className="question">
+              <input
+                type="text"
+                name="questions[]"
+                defaultValue={q.questionText}
+                required
+              />
+              <select name="answerTypes[]">
+                <option value="text" selected={q.answerType === "text"}>
+                  Text
+                </option>
+                <option value="file" selected={q.answerType === "file"}>
+                  File
+                </option>
+                <option value="recording" selected={q.answerType === "recording"}>
+                  Recording
+                </option>
+              </select>
+            </div>
+          ))}
+
+          {/* ✅ Add New Questions Section */}
+          {newQuestions.map((q, index) => (
+            <div key={`new-${index}`} className="question">
+              <input
+                type="text"
+                value={q.questionText}
+                onChange={(e) =>
+                  handleNewQuestionChange(index, "questionText", e.target.value)
+                }
+                placeholder="Enter new question"
+                required
+              />
+              <select
+                value={q.answerType}
+                onChange={(e) =>
+                  handleNewQuestionChange(index, "answerType", e.target.value)
+                }
+              >
+                <option value="text">Text</option>
+                <option value="file">File</option>
+                <option value="recording">Recording</option>
+              </select>
+            </div>
+          ))}
+        </div>
+
+        <button type="button" onClick={handleAddNewQuestion}>
+          ➕ Add Another Question
+        </button>
+
+        <button type="submit">Save Changes</button>
+      </form>
+
+      {/* ✅ Assign or Unassign Candidates */}
       <h3>Assigned Candidates</h3>
       <ul>
         {interview.candidates.length > 0 ? (
@@ -158,58 +293,6 @@ const RecruiterInterviewDetails = () => {
           <button onClick={handleAddCandidates}>Add Selected Candidates</button>
         </>
       )}
-
-      <h3>Edit Interview Questions</h3>
-      <form onSubmit={handleEditInterview}>
-        <div id="questions-container">
-          {interview.questions.map((q, i) => (
-            <div key={i} className="question">
-              <input
-                type="text"
-                name="questions[]"
-                defaultValue={q.questionText}
-                required
-              />
-              <select name="answerTypes[]">
-                <option value="text" selected={q.answerType === "text"}>Text</option>
-                <option value="file" selected={q.answerType === "file"}>File</option>
-                <option value="recording" selected={q.answerType === "recording"}>Recording</option>
-              </select>
-            </div>
-          ))}
-
-          {/* ✅ New Questions Section */}
-          {newQuestions.map((q, index) => (
-            <div key={`new-${index}`} className="question">
-              <input
-                type="text"
-                value={q.questionText}
-                onChange={(e) =>
-                  handleNewQuestionChange(index, "questionText", e.target.value)
-                }
-                placeholder="Enter new question"
-                required
-              />
-              <select
-                value={q.answerType}
-                onChange={(e) =>
-                  handleNewQuestionChange(index, "answerType", e.target.value)
-                }
-              >
-                <option value="text">Text</option>
-                <option value="file">File</option>
-                <option value="recording">Recording</option>
-              </select>
-            </div>
-          ))}
-        </div>
-
-        <button type="button" onClick={handleAddNewQuestion}>
-          ➕ Add Another Question
-        </button>
-
-        <button type="submit">Save Changes</button>
-      </form>
 
       <br />
       <Link to="/recruiter/interviews">Back to Interviews</Link>

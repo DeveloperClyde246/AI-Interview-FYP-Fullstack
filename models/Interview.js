@@ -20,7 +20,8 @@ const InterviewSchema = new mongoose.Schema({
       marks: { type: Number, default: null } // ✅ Store average mark
     }
   ],
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  answerDuration: { type: Number, default: 60 },
 });
 
 module.exports = mongoose.model("Interview", InterviewSchema);

@@ -57,7 +57,9 @@ router.get("/", async (req, res) => {
       }
     }
 
-    const notifications = await Notification.find({ userId: recruiterId }).sort({ createdAt: -1 });
+    const notifications = await Notification.find({ userId: recruiterId }).sort({
+      createdAt: -1,
+    });
 
     const interviews = await Interview.find({ recruiterId })
       .populate("candidates", "name email")
@@ -87,7 +89,7 @@ router.get("/create-interview", async (req, res) => {
 
 // ✅ Create new interview
 router.post("/create-interview", async (req, res) => {
-  const { title, description, scheduled_date, questions, candidateIds } = req.body;
+  const { title, description, scheduled_date, questions, answerDuration, candidateIds } = req.body;
   const recruiterId = req.user.id;
 
   try {
@@ -99,18 +101,25 @@ router.post("/create-interview", async (req, res) => {
     // ✅ Map questions correctly
     const formattedQuestions = questions.map((q) => ({
       questionText: q.questionText,
-      answerType: q.answerType || "text", // Default answer type if not provided
+      answerType: q.answerType || "text",
       recordingRequired: q.recordingRequired || false,
     }));
+
+    console.log("Received Scheduled Date:", scheduled_date);
+    console.log("Scheduled Date (Parsed):", new Date(scheduled_date));
+
+    const parsedDate = new Date(scheduled_date);
+    const localDate = new Date(parsedDate.getTime() - parsedDate.getTimezoneOffset() * 60000); 
 
     // ✅ Create new interview with formatted questions
     const interview = new Interview({
       recruiterId,
       title,
       description,
-      scheduled_date: new Date(scheduled_date),
+      scheduled_date: localDate,
+      answerDuration: answerDuration || 60, 
       questions: formattedQuestions,
-      candidates: candidateIds ? candidateIds.map(id => new mongoose.Types.ObjectId(id)) : [],
+      candidates: candidateIds ? candidateIds.map((id) => new mongoose.Types.ObjectId(id)) : [],
     });
 
     await interview.save();
@@ -159,7 +168,7 @@ router.post("/interview/:id/add-candidates", async (req, res) => {
     }
 
     await Interview.findByIdAndUpdate(req.params.id, {
-      $addToSet: { candidates: { $each: candidateIds.map(id => new mongoose.Types.ObjectId(id)) } }
+      $addToSet: { candidates: { $each: candidateIds.map((id) => new mongoose.Types.ObjectId(id)) } },
     });
 
     res.json({ message: "Candidates added" });
@@ -185,7 +194,7 @@ router.post("/interview/:id/unassign-candidate", async (req, res) => {
   try {
     const { candidateId } = req.body;
     await Interview.findByIdAndUpdate(req.params.id, {
-      $pull: { candidates: new mongoose.Types.ObjectId(candidateId) }
+      $pull: { candidates: new mongoose.Types.ObjectId(candidateId) },
     });
 
     res.json({ message: "Candidate unassigned" });
@@ -195,17 +204,25 @@ router.post("/interview/:id/unassign-candidate", async (req, res) => {
   }
 });
 
-// ✅ Edit interview questions
+// ✅ Edit interview (Questions, Title, Description, Date, and Duration)
 router.post("/interview/:id/edit", async (req, res) => {
   try {
-    const { questions, answerTypes } = req.body;
+    const { title, description, scheduled_date, questions, answerTypes, answerDuration } = req.body;
 
+    // ✅ Map questions correctly
     const formattedQuestions = questions.map((q, index) => ({
       questionText: q,
       answerType: answerTypes[index],
     }));
 
-    await Interview.findByIdAndUpdate(req.params.id, { questions: formattedQuestions });
+    // ✅ Update interview details with questions, title, description, date, and duration
+    await Interview.findByIdAndUpdate(req.params.id, {
+      title,
+      description,
+      scheduled_date: new Date(scheduled_date),
+      answerDuration: answerDuration || 60, // Default to 60 seconds if not provided
+      questions: formattedQuestions,
+    });
 
     res.json({ message: "Interview updated" });
   } catch (error) {
