@@ -58,40 +58,40 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// ✅ Delete notification
+// ✅ Delete Notification (Prevent deletion if interview is within 24 hours)
 router.post("/:id/delete", async (req, res) => {
   try {
+    // ✅ Find the notification
     const notification = await Notification.findById(req.params.id);
     if (!notification) {
       return res.status(404).json({ message: "Notification not found" });
     }
 
-    // ✅ Extract interview title from notification message
-    const interviewTitleMatch = notification.message.match(/"([^"]+)"/);
-    if (!interviewTitleMatch) {
-      return res.status(400).json({ message: "Invalid notification format" });
+    // ✅ Check if the notification is linked to an interview
+    const interviewTitleMatch = notification.message.match(/interview titled "(.*)" scheduled/);
+    if (interviewTitleMatch) {
+      const interviewTitle = interviewTitleMatch[1];
+
+      // ✅ Find the interview with the title mentioned in the notification
+      const interview = await Interview.findOne({ title: interviewTitle });
+      if (interview) {
+        const now = new Date();
+        const interviewTime = new Date(interview.scheduled_date);
+
+        // ✅ Check if the interview is within the next 24 hours
+        const timeDiff = interviewTime - now;
+        const hoursDiff = timeDiff / (1000 * 60 * 60);
+
+        // ❌ Prevent deletion if the interview is happening in less than 24 hours
+        if (hoursDiff > 0 && hoursDiff <= 24) {
+          return res.status(403).json({
+            message: "Cannot delete notifications for interviews scheduled within 24 hours.",
+          });
+        }
+      }
     }
 
-    const interviewTitle = interviewTitleMatch[1];
-
-    // ✅ Find the corresponding interview by title
-    const interview = await Interview.findOne({ title: interviewTitle });
-    if (!interview) {
-      // ✅ Allow deleting notification if interview is not found
-      await Notification.findByIdAndDelete(req.params.id);
-      return res.json({ message: "Notification deleted successfully" });
-    }
-
-    // ✅ Check if interview is within 24 hours
-    const now = new Date();
-    const interviewDate = new Date(interview.scheduled_date);
-    const hoursDifference = (interviewDate - now) / (1000 * 60 * 60);
-
-    if (hoursDifference <= 24) {
-      return res.status(403).json({ message: "Cannot delete notifications for interviews happening within 24 hours." });
-    }
-
-    // ✅ Delete the notification if the interview is not within 24 hours
+    // ✅ Allow notification deletion if interview has passed or not happening within 24 hours
     await Notification.findByIdAndDelete(req.params.id);
     res.json({ message: "Notification deleted successfully" });
   } catch (error) {
