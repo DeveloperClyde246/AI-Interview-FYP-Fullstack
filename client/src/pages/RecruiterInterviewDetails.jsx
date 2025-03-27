@@ -8,6 +8,7 @@ const RecruiterInterviewDetails = () => {
   const [interview, setInterview] = useState(null);
   const [allCandidates, setAllCandidates] = useState([]);
   const [selectedCandidates, setSelectedCandidates] = useState([]);
+  const [newQuestions, setNewQuestions] = useState([]); // ✅ Store new questions
   const [error, setError] = useState("");
 
   const fetchDetails = async () => {
@@ -65,18 +66,43 @@ const RecruiterInterviewDetails = () => {
           answerType: form.elements[`answerTypes[]`][i].value,
         }));
 
+      // ✅ Combine existing questions with new questions
+      const combinedQuestions = [
+        ...updatedQuestions,
+        ...newQuestions.map((q) => ({
+          questionText: q.questionText,
+          answerType: q.answerType,
+        })),
+      ];
+
       await axios.post(
         `http://localhost:5000/recruiter/interview/${id}/edit`,
         {
-          questions: updatedQuestions.map((q) => q.questionText),
-          answerTypes: updatedQuestions.map((q) => q.answerType),
+          questions: combinedQuestions.map((q) => q.questionText),
+          answerTypes: combinedQuestions.map((q) => q.answerType),
         },
         { withCredentials: true }
       );
+
+      // ✅ Reset new questions and refetch details
+      setNewQuestions([]);
       fetchDetails();
     } catch (err) {
       setError("Failed to update interview.");
     }
+  };
+
+  const handleAddNewQuestion = () => {
+    setNewQuestions([
+      ...newQuestions,
+      { questionText: "", answerType: "text" },
+    ]);
+  };
+
+  const handleNewQuestionChange = (index, key, value) => {
+    const updatedQuestions = [...newQuestions];
+    updatedQuestions[index][key] = value;
+    setNewQuestions(updatedQuestions);
   };
 
   const toggleCandidate = (candidateId) => {
@@ -151,7 +177,37 @@ const RecruiterInterviewDetails = () => {
               </select>
             </div>
           ))}
+
+          {/* ✅ New Questions Section */}
+          {newQuestions.map((q, index) => (
+            <div key={`new-${index}`} className="question">
+              <input
+                type="text"
+                value={q.questionText}
+                onChange={(e) =>
+                  handleNewQuestionChange(index, "questionText", e.target.value)
+                }
+                placeholder="Enter new question"
+                required
+              />
+              <select
+                value={q.answerType}
+                onChange={(e) =>
+                  handleNewQuestionChange(index, "answerType", e.target.value)
+                }
+              >
+                <option value="text">Text</option>
+                <option value="file">File</option>
+                <option value="recording">Recording</option>
+              </select>
+            </div>
+          ))}
         </div>
+
+        <button type="button" onClick={handleAddNewQuestion}>
+          ➕ Add Another Question
+        </button>
+
         <button type="submit">Save Changes</button>
       </form>
 
