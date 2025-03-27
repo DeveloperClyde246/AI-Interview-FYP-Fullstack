@@ -17,9 +17,12 @@ const CreateInterview = () => {
   useEffect(() => {
     const fetchCandidates = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/recruiter/create-interview", {
-          withCredentials: true,
-        });
+        const res = await axios.get(
+          "http://localhost:5000/recruiter/create-interview",
+          {
+            withCredentials: true,
+          }
+        );
         setCandidates(res.data.candidates);
       } catch (err) {
         console.error("Error fetching candidates:", err);
@@ -29,14 +32,27 @@ const CreateInterview = () => {
     fetchCandidates();
   }, []);
 
-  // ✅ Handle creating interview
+  // ✅ Handle creating interview (UPDATED)
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // ✅ Validate that at least one question is provided
+    if (questions.length === 0 || !questions[0].questionText) {
+      alert("Please add at least one question.");
+      return;
+    }
+
+    // ✅ Validate scheduled date
+    if (!scheduledDate) {
+      alert("Please provide a scheduled date.");
+      return;
+    }
+
+    // ✅ Prepare the payload correctly
     const formattedQuestions = questions.map((q) => ({
       questionText: q.questionText,
-      answerType: q.answerType,
-      recordingRequired: q.recordingRequired,
+      answerType: q.answerType || "text", // Default to "text" if not provided
+      recordingRequired: q.recordingRequired || false,
     }));
 
     try {
@@ -46,7 +62,7 @@ const CreateInterview = () => {
           title,
           description,
           scheduled_date: scheduledDate,
-          questions: formattedQuestions,
+          questions: formattedQuestions, // ✅ Pass questions as objects
           candidateIds: selectedCandidates,
         },
         { withCredentials: true }
