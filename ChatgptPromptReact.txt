@@ -1,189 +1,67 @@
-//-------this is views/admin.ejs
-<script>
-  function validateEmailFormat(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  }
+//---------------------------
+//---------------------------this is views/recruiter-create-interview.ejs
 
-  function validateForm(event) {
-    const email = document.getElementById("email").value;
-    if (!validateEmailFormat(email)) {
-      alert("Invalid email format! Please enter a valid email.");
-      event.preventDefault(); // Stop form submission
+
+<h2>Create New Interview</h2>
+
+<form action="/recruiter/create-interview" method="POST">
+  <label>Interview Title:</label>
+  <input type="text" name="title" required><br>
+
+  <label>Interview Description:</label>
+  <textarea name="description" required></textarea><br>
+
+  <label>Scheduled Date:</label>
+  <input type="datetime-local" name="scheduled_date" required><br>
+
+  <h3>Assign Candidates</h3>
+  <ul>
+    <% users.forEach(user => { %>
+      <li>
+        <input type="checkbox" name="candidateIds[]" value="<%= user._id %>">
+        <%= user.name %> (<%= user.email %>)
+      </li>
+    <% }); %>
+  </ul>
+
+  <h3>Interview Questions</h3>
+  <div id="questions-container">
+    <div class="question">
+      <input type="text" name="questions[]" placeholder="Enter question" required>
+      <select name="answerTypes[]">
+        <option value="text">Text-Based Answer</option>
+        <option value="file">File Upload</option>
+        <option value="recording">Recording on Portal</option> <!-- ✅ Added Recording Option -->
+      </select>
+      <label>
+        <input type="checkbox" name="recordingRequired[]" value="true"> Requires Recording
+      </label>
+    </div>
+  </div>
+  
+  <button type="button" onclick="addQuestion()">Add Another Question</button>
+  <button type="submit">Create Interview</button>
+  
+  <script>
+    function addQuestion() {
+      const container = document.getElementById("questions-container");
+      const div = document.createElement("div");
+      div.classList.add("question");
+      div.innerHTML = `
+        <input type="text" name="questions[]" placeholder="Enter question" required>
+        <select name="answerTypes[]">
+          <option value="text">Text-Based Answer</option>
+          <option value="file">File Upload</option>
+          <option value="recording">Recording on Portal</option>
+        </select>
+        <label>
+          <input type="checkbox" name="recordingRequired[]" value="true"> Requires Recording
+        </label>
+      `;
+      container.appendChild(div);
     }
-  }
-
-</script>
-
-<h2>Admin Dashboard</h2>
-<p>Manage all users (Candidates & Recruiters)</p>
-
-<!-- Create New User Form -->
-<h3>Create New User</h3>
-<form action="/admin-dashboard/create" method="POST" onsubmit="validateForm(event)">
-  <input type="text" name="name" placeholder="Name" required>
-  <input type="email" id="email" name="email" placeholder="Email" required>
-  <input type="password" name="password" placeholder="Password" required>
-  <select name="role">
-    <option value="candidate">Candidate</option>
-    <option value="recruiter">Recruiter</option>
-    <option value="admin">Admin</option>
-  </select>
-  <button type="submit">Create User</button>
-</form>
-
-
-<!-- User List -->
-<h3>All Users</h3>
-<table border="1">
-  <tr>
-    <th>Name</th>
-    <th>Email</th>
-    <th>Role</th>
-    <th>Actions</th>
-  </tr>
-  <% users.forEach(user => { %>
-    <tr>
-      <td><%= user.name %></td>
-      <td><%= user.email %></td>
-      <td><%= user.role %></td>
-      <!-- <td>
-        <button onclick="togglePassword('<%= user._id %>')">Show Password</button>
-        <input type="text" id="password-<%= user._id %>" value="********" readonly>
-      </td> -->
-      <td>
-        <form action="/admin-dashboard/edit/<%= user._id %>" method="POST">
-          <input type="text" name="name" value="<%= user.name %>" required>
-          <input type="email" name="email" value="<%= user.email %>" required>
-          <select name="role">
-            <option value="candidate" <%= user.role === "candidate" ? "selected" : "" %>>Candidate</option>
-            <option value="recruiter" <%= user.role === "recruiter" ? "selected" : "" %>>Recruiter</option>
-            <option value="admin" <%= user.role === "admin" ? "selected" : "" %>>Admin</option>
-          </select>
-          <button type="submit">Edit</button>
-        </form>
-        
-        <!-- Change Password Form -->
-        <form action="/admin-dashboard/change-password/<%= user._id %>" method="POST">
-          <input type="password" name="newPassword" placeholder="New Password" required>
-          <button type="submit">Change Password</button>
-        </form>
-
-        <form action="/admin-dashboard/delete/<%= user._id %>" method="POST">
-          <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
-        </form>
-      </td>
-    </tr>
-  <% }); %>
-</table>
-
-<a href="/auth/logout">Logout</a>
-
-
-//----this is routes/admin.js
-const express = require("express");
-const User = require("../models/User");
-const authMiddleware = require("../middleware/authMiddleware");
-const bcrypt = require("bcryptjs");
-
-const router = express.Router();
-
-// Ensure only admins can access these routes
-router.use(authMiddleware(["admin"]));
-
-// View all users
-router.get("/", async (req, res) => {
-  try {
-    const users = await User.find();
-    res.render("admin-dashboard", { title: "Admin Dashboard", users });
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching users" });
-  }
-});
-
-// // Get decrypted password (for viewing)
-// router.get("/get-password/:id", async (req, res) => {
-//   try {
-//     const user = await User.findById(req.params.id);
-//     if (!user) return res.status(404).json({ message: "User not found" });
-
-//     res.json({ password: user.password }); // Sending hashed password (for security, don't send plaintext!)
-//   } catch (error) {
-//     res.status(500).json({ message: "Error fetching password" });
-//   }
-// });
-
-// Change user password
-router.post("/change-password/:id", async (req, res) => {
-  const { newPassword } = req.body;
-
-  try {
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await User.findByIdAndUpdate(req.params.id, { password: hashedPassword });
-
-    res.redirect("/admin-dashboard");
-  } catch (error) {
-    res.status(500).json({ message: "Error updating password" });
-  }
-});
+  </script>
+  
 
 
 
-// Create a new user
-router.post("/create", async (req, res) => {
-  const { name, email, password, role } = req.body;
-  try {
-    // Check if email format is valid
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ message: "Invalid email format" });
-    }
-
-    // 1. Check if the email is already registered
-    let user = await User.findOne({ email });
-    if (user) return res.json({ message: "Email already exists" });
-
-    // 2. Hash the password before saving
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // 3. Create and save the user
-    user = new User({ name, email, password: hashedPassword, role });
-    await user.save();
-
-    // 4. Redirect to login page
-    res.redirect("/admin-dashboard");
-  } catch (error) {
-    res.status(500).json({ message: "Error creating user" });
-  }
-});
-
-// Edit user details
-router.post("/edit/:id", async (req, res) => {
-  const { name, email, role } = req.body;
-  try {
-    await User.findByIdAndUpdate(req.params.id, { name, email, role });
-    res.redirect("/admin-dashboard");
-  } catch (error) {
-    res.status(500).json({ message: "Error updating user" });
-  }
-});
-
-// Delete a user
-router.post("/delete/:id", async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
-
-    // Prevent deleting the main admin account
-    if (user.email === "mainAdmin@gmail.com") {
-      return res.status(403).json({ message: "Cannot delete the main admin account" });
-    }
-
-    await User.findByIdAndDelete(req.params.id);
-    res.redirect("/admin-dashboard");
-  } catch (error) {
-    res.status(500).json({ message: "Error deleting user" });
-  }
-});
-
-
-module.exports = router;
