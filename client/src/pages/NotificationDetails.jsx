@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useParams, useNavigate } from "react-router-dom";
 
 const NotificationDetails = () => {
-  const { id } = useParams(); // Get notification ID from URL
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [notification, setNotification] = useState(null);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const [deletable, setDeletable] = useState(true);
 
   useEffect(() => {
     const fetchNotification = async () => {
@@ -14,28 +15,48 @@ const NotificationDetails = () => {
         const res = await axios.get(`http://localhost:5000/notifications/${id}`, {
           withCredentials: true,
         });
-        setNotification(res.data.notification);
+
+        if (res.status === 200) {
+          setNotification(res.data.notification);
+
+          // ✅ Check if the interview is within 24 hours
+          const interviewDate = new Date(res.data.interviewDate);
+          const now = new Date();
+          const timeDiff = interviewDate - now;
+
+          if (timeDiff <= 24 * 60 * 60 * 1000 && timeDiff > 0) {
+            setDeletable(false);
+          }
+        }
       } catch (err) {
         console.error("Error fetching notification:", err);
-        setError("Failed to load notification.");
+        setError("Error fetching notification.");
       }
     };
 
     fetchNotification();
   }, [id]);
 
-  const deleteNotification = async () => {
+  const handleDelete = async () => {
     try {
-      await axios.post(
+      const res = await axios.post(
         `http://localhost:5000/notifications/${id}/delete`,
         {},
         { withCredentials: true }
       );
-      alert("Notification deleted successfully!");
-      navigate("/recruiter"); // Redirect to recruiter dashboard
+  
+      if (res.status === 200) {
+        alert("Notification deleted successfully!");
+        navigate("/recruiter");
+      }
     } catch (err) {
-      console.error("Error deleting notification:", err);
-      setError("Failed to delete notification.");
+      // ✅ Handle 403 error properly
+      if (err.response && err.response.status === 403) {
+        alert(err.response.data.message || "You cannot delete this notification because the interview is happening within 24 hours.");
+      } else {
+        console.error("Error deleting notification:", err);
+        alert("Error deleting notification. Please try again.");
+      }
     }
   };
 
@@ -44,7 +65,7 @@ const NotificationDetails = () => {
   }
 
   if (!notification) {
-    return <p>Loading notification...</p>;
+    return <p>Loading...</p>;
   }
 
   return (
@@ -54,14 +75,14 @@ const NotificationDetails = () => {
         <strong>Message:</strong> {notification.message}
       </p>
       <p>
-        <strong>Created At:</strong>{" "}
-        {new Date(notification.createdAt).toLocaleString()}
+        <strong>Created At:</strong> {new Date(notification.createdAt).toLocaleString()}
       </p>
 
-      <button onClick={deleteNotification} style={{ marginRight: "10px" }}>
+      <button onClick={handleDelete} disabled={!deletable}>
         Delete Notification
       </button>
-      <button onClick={() => navigate("/recruiter")}>Back to Dashboard</button>
+      <br />
+      <a href="/recruiter">Back to Dashboard</a>
     </div>
   );
 };
