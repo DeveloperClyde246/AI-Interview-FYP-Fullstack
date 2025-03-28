@@ -10,7 +10,7 @@ const UserSchema = new mongoose.Schema({
     required: true 
   },
   interviews: [{ type: mongoose.Schema.Types.ObjectId, ref: "Interview" }], // References interviews
-  resume: { type: String, default: null }, // ✅ Store resume file path
+  resume: { type: String, default: null }, //Store resume file path
   createdAt: { type: Date, default: Date.now }, // Timestamp for user creation
   updatedAt: { type: Date, default: Date.now }  // Timestamp for updates
 });

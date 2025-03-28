@@ -5,37 +5,37 @@ const User = require("../models/User");
 
 const router = express.Router();
 
-// Show Register Page (Only for Candidates)
+// Show Rrgister page (Only for candidates)
 router.get("/register", (req, res) => {
   res.render("register", { title: "Register", errorMessage: null });
 });
 
-// Handle User Registration (Only for Candidates)
+// Handle user registration (Only for candidates)
 router.post("/register", async (req, res) => {
   const { name, email, password } = req.body;
-  const role = "candidate"; // Default role for new registrations
+  const role = "candidate"; // set role candidate only, so default
 
   try {
-    // Check if email format is valid
+    // Check email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ message: "Invalid email format" });
     }
 
-    // 1. Check if the email is already registered
+    // Check if the email is already registered
     let user = await User.findOne({ email });
     if (user) {
       return res.render("register", { title: "Register", errorMessage: "Email already in use" });
     }
 
-    // 2. Hash the password before saving
+    // Hash the password before saving
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // 3. Create and save the user
+    // Create and save the user
     user = new User({ name, email, password: hashedPassword, role });
     await user.save();
 
-    // 4. Redirect to login page
+    // Redirect to login page
     res.redirect("/auth/login");
   } catch (err) {
     res.render("register", { title: "Register", errorMessage: "Server error" });
@@ -71,8 +71,6 @@ router.post("/login", async (req, res) => {
       { expiresIn: "1h" }
     );
 
-
-
     // 4. Store JWT and role in cookies
     res.cookie("token", token, { httpOnly: true });
     res.cookie("username", user.name, { httpOnly: true });
@@ -101,16 +99,3 @@ router.get("/logout", (req, res) => {
 
 module.exports = router;
 
-
-
-/*
-//Info for chatgpt: dont delete comment below, keep them in ur answer, they are useful bro
-//LET HIM COOK!!!!!
-//Future me: i didnt read detailed how JWT work, so i just copy paste it from the tutorial， 记得哈哈哈
-//Future you: I hate u
-
-//bro
-
-
-broooooooooo i cant handle anymore
-*/

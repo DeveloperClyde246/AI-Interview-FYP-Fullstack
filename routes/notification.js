@@ -38,9 +38,9 @@ const checkUpcomingInterviews = async () => {
       }
     }
 
-    console.log(`✅ Notifications sent for ${upcomingInterviews.length} upcoming interviews.`);
+    console.log(`Notifications sent for ${upcomingInterviews.length} upcoming interviews.`);
   } catch (error) {
-    console.error("❌ Error checking upcoming interviews:", error.message);
+    console.error("Error checking upcoming interviews:", error.message);
   }
 };
 
@@ -48,7 +48,7 @@ const checkUpcomingInterviews = async () => {
 setInterval(checkUpcomingInterviews, 24 * 60 * 60 * 1000); // Run once per day
 
 
-// ✅ View Notification Details
+// View Notification Details
 router.get("/:id", async (req, res) => {
   try {
     const notification = await Notification.findById(req.params.id);
@@ -56,18 +56,18 @@ router.get("/:id", async (req, res) => {
 
     res.render("notification-details", { title: "Notification Details", notification });
   } catch (error) {
-    console.error("❌ Error fetching notification details:", error.message);
+    console.error("Error fetching notification details:", error.message);
     res.status(500).json({ message: "Error fetching notification details" });
   }
 });
 
-// ✅ Delete Notification
+// Delete Notification
 router.post("/:id/delete", async (req, res) => {
   try {
     await Notification.findByIdAndDelete(req.params.id);
     res.redirect("/recruiter");
   } catch (error) {
-    console.error("❌ Error deleting notification:", error.message);
+    console.error("Error deleting notification:", error.message);
     res.status(500).json({ message: "Error deleting notification" });
   }
 });

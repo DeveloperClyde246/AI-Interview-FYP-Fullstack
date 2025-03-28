@@ -45,7 +45,7 @@
 
         mediaRecorder.start();
       })
-      .catch(error => console.error("❌ Error accessing camera:", error));
+      .catch(error => console.error("Error accessing camera:", error));
   }
 
   function stopVideoRecording(index) {
@@ -57,12 +57,12 @@
         const videoUrl = URL.createObjectURL(videoBlob);
         const videoPreview = document.getElementById(`video-preview-${index}`);
 
-        // ✅ Set video source to preview before uploading
+        // Set video source to preview before uploading
         videoPreview.srcObject = null;
         videoPreview.src = videoUrl;
         videoPreview.controls = true;
 
-        // ✅ Upload Video to Cloudinary
+        // Upload Video to Cloudinary
         isUploading = true;
         let formData = new FormData();
         formData.append("file", videoBlob);
@@ -75,16 +75,16 @@
           });
 
           let data = await response.json();
-          document.getElementById(`recorded-video-${index}`).value = data.secure_url; // ✅ Store Cloudinary URL in form
+          document.getElementById(`recorded-video-${index}`).value = data.secure_url; // Store Cloudinary URL in form
           isUploading = false;
         } catch (error) {
-          console.error("❌ Error uploading video to Cloudinary:", error);
+          console.error("Error uploading video to Cloudinary:", error);
         }
       };
     }
   }
 
-  // ✅ Prevent Form Submission Until Cloudinary Upload Completes
+  // Prevent Form Submission Until Cloudinary Upload Completes
   document.getElementById("answer-form").addEventListener("submit", function (event) {
     if (isUploading) {
       event.preventDefault();
