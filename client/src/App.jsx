@@ -9,6 +9,7 @@ import RecruiterInterviewDetails from "./pages/RecruiterInterviewDetails";
 import RecruiterInterviewResults from "./pages/RecruiterInterviewResults";
 import NotificationDetails from "./pages/NotificationDetails";
 import CreateInterview from "./pages/CreateInterview";
+import CandidateFAQ from "./pages/CandidateFAQ";
 
 
 function App() {
@@ -29,7 +30,7 @@ function App() {
         <Route path="/notifications/:id" element={<NotificationDetails />} />
         <Route path="/recruiter/create-interview" element={<CreateInterview />} />
 
-        
+        <Route path="/candidate/faq" element={<CandidateFAQ />} />
 
       </Routes>
     </BrowserRouter>
